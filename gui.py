@@ -166,6 +166,9 @@ class MoodleTreeView(QTreeWidget):
         for leaf in self.worker.moodleItems.leaves:
             self.addTopLevelItem(leaf.qt)
 
+        # sort only after the worker is done for efficiency
+        self.setSortingEnabled(True)
+
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, parent):
         super().__init__()
