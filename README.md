@@ -1,6 +1,8 @@
 # Muddle (Work in progress!)
 A desktop Moodle client, because the web interface is painfully slow if you quickly need to grab a file.
 
+![](./muddle.png)
+
 ## Configuration
 On linux, copy `muddle.ini.sample` to `~/.config/muddle/muddle.ini` and add a token.
 On other platforms there is no specific path implemented yet, so it will look for a file `muddle.ini` in the same folder as the executable.
