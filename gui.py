@@ -12,13 +12,13 @@ import logging
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
 from PyQt5.QtCore import Qt, QThread, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem, QGridLayout, QHBoxLayout, QPushButton, QProgressBar, QTabWidget, QPlainTextEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QGridLayout, QHBoxLayout, QPushButton, QProgressBar, QTabWidget, QPlainTextEdit
 
 import moodle
 
 log = logging.getLogger("muddle.gui")
 
-class MoodleItem:
+class MoodleItem(QTreeWidgetItem):
     class Type(enum.Enum):
         ROOT       = 0
         # root
@@ -27,35 +27,33 @@ class MoodleItem:
         SECTION    = 2
         # modules
         MODULE     = 3
-        FORUM      = 3
-        RESOURCE   = 3
-        FOLDER     = 3
-        ATTENDANCE = 3
-        LABEL      = 3
-        QUIZ       = 3
+        FORUM      = 4
+        RESOURCE   = 5
+        FOLDER     = 6
+        ATTENDANCE = 7
+        LABEL      = 8
+        QUIZ       = 9
         # contents
-        CONTENT    = 4
-        FILE       = 4
-        URL        = 4
+        CONTENT    = 10
+        FILE       = 11
+        URL        = 12
+
+    class Metadata:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
 
     def __init__(self, nodetype, leaves=[], **kwargs):
-        self.leaves = leaves
-        self.type = nodetype
-
-        # TODO: check required attributes
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
+        super().__init__()
+        self.metadata = MoodleItem.Metadata(type = nodetype, **kwargs)
         self.setupQt()
 
     # TODO: Qt objects should be on the main thread
     # prob cause of the crash
     def setupQt(self):
-        self.qt = QTreeWidgetItem()
-
         font = QFont("Monospace")
         font.setStyleHint(QFont.Monospace)
-        self.qt.setFont(0, font)
+        self.setFont(0, font)
 
         icons = {
             MoodleItem.Type.COURSE   : QApplication.style().standardIcon(QStyle.SP_DriveNetIcon),
@@ -65,25 +63,15 @@ class MoodleItem:
         }
 
         if icons.get(self.type):
-            self.qt.setIcon(0, icons[self.type])
+            self.setIcon(0, icons[self.metadata.type])
 
-        if self.type == MoodleItem.Type.FILE:
-            flags = self.qt.flags()
-            self.qt.setFlags(flags | Qt.ItemIsUserCheckable)
-            self.qt.setCheckState(0, Qt.Unchecked)
+        if self.metadata.type == MoodleItem.Type.FILE:
+            flags = self.flags()
+            self.setFlags(flags | Qt.ItemIsUserCheckable)
+            self.setCheckState(0, Qt.Unchecked)
 
-        self.qt.setChildIndicatorPolicy(QTreeWidgetItem.DontShowIndicatorWhenChildless)
-        self.qt.setText(0, html.unescape(self.title))
-
-    def insert(self, node):
-        self.leaves.append(node)
-        if not self.type == MoodleItem.Type.ROOT:
-            self.qt.addChild(node.qt)
-
-    def remove(self, node):
-        self.leaves.remove(node)
-        self.qt.removeChild(node.qt)
-        # TODO: remove from child
+        self.setChildIndicatorPolicy(QTreeWidgetItem.DontShowIndicatorWhenChildless)
+        self.setText(0, html.unescape(self.metadata.title))
 
 class MoodleFetcher(QThread):
     def __init__(self, parent, instance_url, token):
@@ -100,15 +88,15 @@ class MoodleFetcher(QThread):
             courseItem = MoodleItem(MoodleItem.Type.COURSE, 
                     id = course["id"], title = course["shortname"])
 
-            self.moodleItems.insert(courseItem)
+            self.moodleItems.addChild(courseItem)
 
-            sections = self.api.core_course_get_contents(courseid=courseItem.id).json()
+            sections = self.api.core_course_get_contents(courseid=courseItem.metadata.id).json()
 
             for section in sections:
                 sectionItem = MoodleItem(MoodleItem.Type.SECTION,
                         id = section["id"], title = section["name"])
 
-                courseItem.insert(sectionItem)
+                courseItem.addChild(sectionItem)
 
                 modules = section["modules"] if "modules" in section else []
                 for module in modules:
@@ -124,7 +112,7 @@ class MoodleFetcher(QThread):
                     moduleItem = MoodleItem(moduleType.get(module["modname"]) or MoodleItem.Type.MODULE,
                             id = module["id"], title = module["name"])
 
-                    sectionItem.insert(moduleItem)
+                    sectionItem.addChild(moduleItem)
 
                     contents = module["contents"] if "contents" in module else []
                     for content in contents:
@@ -136,7 +124,7 @@ class MoodleFetcher(QThread):
                         contentItem = MoodleItem(contentType.get(content["type"]) or MoodleItem.Type.MODULE,
                                 title = content["filename"], url = content["fileurl"])
 
-                        moduleItem.insert(contentItem)
+                        moduleItem.addChild(contentItem)
 
 
 class MoodleTreeView(QTreeWidget):
@@ -163,8 +151,8 @@ class MoodleTreeView(QTreeWidget):
     @pyqtSlot()
     def onWorkerDone(self):
         log.debug("worker done")
-        for leaf in self.worker.moodleItems.leaves:
-            self.addTopLevelItem(leaf.qt)
+        for item in QTreeWidgetItemIterator(self.worker.moodleItems):
+            self.addTopLevelItem(item)
 
         # sort only after the worker is done for efficiency
         self.setSortingEnabled(True)
@@ -172,6 +160,7 @@ class MoodleTreeView(QTreeWidget):
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, parent):
         super().__init__()
+        # TODO: set monospaced font
         self.widget = QPlainTextEdit(parent)
         self.widget.setReadOnly(True)
 
@@ -199,6 +188,8 @@ class Muddle(QTabWidget):
         self.tabmoodle.setLayout(QGridLayout())
         self.tabmoodle.layout().addWidget(MoodleTreeView(self, self.instance_url, self.token), 0, 0, 1, -1)
 
+        # TODO: make number of selected element appear
+        # TODO: add path selector, to select where to download the files
         self.tabmoodle.downloadbtn = QPushButton("Download")
         self.tabmoodle.selectallbtn = QPushButton("Select All")
         self.tabmoodle.deselectallbtn = QPushButton("Deselect All")
