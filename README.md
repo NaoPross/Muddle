@@ -18,3 +18,14 @@ muddle $ ./muddle --gui
 ```
 
 The code is a bit garbage, as I hacked it toghether in one morning, though I've tried to clean it up a bit.
+
+## Compilation / Release
+To create an executable you need PyInstaller, you can get it with
+```
+$ pip3 install pyinstaller
+```
+And then run
+```
+$ pyinstaller --onefile muddle
+```
+The computer will think for a while, and then once its done there will be a single executable `dist/muddle`.
