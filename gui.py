@@ -50,8 +50,6 @@ class MoodleItem(QTreeWidgetItem):
         self.metadata = MoodleItem.Metadata(type = nodetype, **kwargs)
         self.setupQt()
 
-    # TODO: Qt objects should be on the main thread
-    # prob cause of the crash
     def setupQt(self):
         font = QFont("Monospace")
         font.setStyleHint(QFont.Monospace)
@@ -64,7 +62,7 @@ class MoodleItem(QTreeWidgetItem):
             MoodleItem.Type.URL      : QApplication.style().standardIcon(QStyle.SP_FileLinkIcon),
         }
 
-        if icons.get(self.type):
+        if icons.get(self.metadata.type):
             self.setIcon(0, icons[self.metadata.type])
 
         if self.metadata.type == MoodleItem.Type.FILE:
@@ -172,9 +170,22 @@ class MoodleTreeView(QTreeWidget):
         if type == MoodleItem.Type.SECTION:
             moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["name"])
         elif type == MoodleItem.Type.MODULE:
-            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["name"])
+            moduleType = {
+                "folder"     : MoodleItem.Type.FOLDER,
+                "resource"   : MoodleItem.Type.RESOURCE,
+                "forum"      : MoodleItem.Type.FORUM,
+                "attendance" : MoodleItem.Type.ATTENDANCE,
+                "label"      : MoodleItem.Type.LABEL,
+                "quiz"       : MoodleItem.Type.QUIZ,
+            }
+
+            moodleItem = MoodleItem(parent = parent, nodetype = moduleType.get(item["modname"]) or type, id = item["id"], title = item["name"])
         elif type == MoodleItem.Type.CONTENT:
-            moodleItem = MoodleItem(parent = parent, nodetype = type, title = item["filename"], url = item["fileurl"])
+            contentType = {
+                "url" : MoodleItem.Type.URL,
+                "file" : MoodleItem.Type.FILE,
+            }
+            moodleItem = MoodleItem(parent = parent, nodetype = contentType.get(item["type"]) or type, title = item["filename"], url = item["fileurl"])
 
         if not moodleItem:
             log.error(f"Could not load item of type {type}")
