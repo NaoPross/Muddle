@@ -56,19 +56,22 @@ class MoodleItem(QTreeWidgetItem):
         self.setFont(0, font)
 
         icons = {
-            MoodleItem.Type.COURSE   : QApplication.style().standardIcon(QStyle.SP_DriveNetIcon),
-            MoodleItem.Type.FOLDER   : QApplication.style().standardIcon(QStyle.SP_DirIcon),
-            MoodleItem.Type.FILE     : QApplication.style().standardIcon(QStyle.SP_FileIcon),
-            MoodleItem.Type.URL      : QApplication.style().standardIcon(QStyle.SP_FileLinkIcon),
+            MoodleItem.Type.COURSE   : QStyle.SP_DriveNetIcon,
+            MoodleItem.Type.FOLDER   : QStyle.SP_DirIcon,
+            MoodleItem.Type.RESOURCE : QStyle.SP_DirLinkIcon,
+            MoodleItem.Type.FILE     : QStyle.SP_FileIcon,
+            MoodleItem.Type.URL      : QStyle.SP_FileLinkIcon,
         }
 
         if icons.get(self.metadata.type):
-            self.setIcon(0, icons[self.metadata.type])
+            self.setIcon(0, QApplication.style().standardIcon(icons[self.metadata.type]))
 
-        if self.metadata.type == MoodleItem.Type.FILE:
-            flags = self.flags()
-            self.setFlags(flags | Qt.ItemIsUserCheckable)
+        flags = self.flags()
+        if self.metadata.type in [ MoodleItem.Type.FILE, MoodleItem.Type.FOLDER, MoodleItem.Type.RESOURCE ]:
+            self.setFlags(flags | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
             self.setCheckState(0, Qt.Unchecked)
+        else:
+            self.setFlags(flags & ~Qt.ItemIsUserCheckable)
 
         self.setChildIndicatorPolicy(QTreeWidgetItem.DontShowIndicatorWhenChildless)
         self.setText(0, html.unescape(self.metadata.title))
@@ -151,9 +154,10 @@ class MoodleTreeView(QTreeWidget):
     def onItemDoubleClicked(self, item, col):
         log.debug(f"double clicked on item with type {str(item.metadata.type)}")
         if item.type == MoodleItem.Type.FILE:
+            # TODO: download in a temp folder and open
             pass
 
-    # @pyqtSlot()
+    @pyqtSlot(MoodleItem.Type, object)
     def onWorkerLoadedItem(self, type, item):
         # Assume that the items arrive in order
         moodleItem = None
