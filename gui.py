@@ -19,7 +19,7 @@ import moodle
 log = logging.getLogger("muddle.gui")
 
 class MoodleItem(QTreeWidgetItem):
-    class Type(enum.Enum):
+    class Type(enum.IntEnum):
         ROOT       = 0
         # root
         COURSE     = 1
@@ -45,8 +45,8 @@ class MoodleItem(QTreeWidgetItem):
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
-    def __init__(self, nodetype, leaves=[], **kwargs):
-        super().__init__()
+    def __init__(self, parent, nodetype, leaves=[], **kwargs):
+        super().__init__(parent)
         self.metadata = MoodleItem.Metadata(type = nodetype, **kwargs)
         self.setupQt()
 
@@ -134,6 +134,8 @@ class MoodleTreeView(QTreeWidget):
     def __init__(self, parent, instance_url, token):
         super().__init__(parent)
 
+        self.lastInsertedItem = None
+
         self.initUi()
 
         self.worker = MoodleFetcher(self, instance_url, token)
@@ -149,17 +151,41 @@ class MoodleTreeView(QTreeWidget):
 
     @pyqtSlot(QTreeWidgetItem, int)
     def onItemDoubleClicked(self, item, col):
-        log.debug(f"double clicked on item with type {str(item.type)}")
+        log.debug(f"double clicked on item with type {str(item.metadata.type)}")
         if item.type == MoodleItem.Type.FILE:
             pass
 
     # @pyqtSlot()
     def onWorkerLoadedItem(self, type, item):
-        log.debug(f"loaded item of type {type}")
+        # Assume that the items arrive in order
+        moodleItem = None
+        parent = None
+
+        if type == MoodleItem.Type.COURSE:
+            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["shortname"])
+            self.addTopLevelItem(moodleItem)
+        else:
+            parent = self.lastInsertedItem
+            while type <= parent.metadata.type and parent.parent():
+                parent = parent.parent()
+
+        if type == MoodleItem.Type.SECTION:
+            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["name"])
+        elif type == MoodleItem.Type.MODULE:
+            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["name"])
+        elif type == MoodleItem.Type.CONTENT:
+            moodleItem = MoodleItem(parent = parent, nodetype = type, title = item["filename"], url = item["fileurl"])
+
+        if not moodleItem:
+            log.error(f"Could not load item of type {type}")
+            return
+
+        self.lastInsertedItem = moodleItem
 
     @pyqtSlot()
     def onWorkerDone(self):
         log.debug("worker done")
+        self.sortByColumn(0, Qt.AscendingOrder)
         self.setSortingEnabled(True)
 
 # FIXME: I bet this logger is in another thread and f*cks up
