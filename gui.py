@@ -110,7 +110,7 @@ class MoodleFetcher(QThread):
             log.debug(course)
             return []
         else:
-            sections = self.api.core_get_contents(courseid = str(course["id"])).json()
+            sections = self.api.core_course_get_contents(courseid = str(course["id"])).json()
             if "exception" in sections:
                 log.error(f"failed to load sections from course with id {course['id']} ({course['shortname']})")
                 log.debug(sections)
@@ -159,8 +159,10 @@ class MoodleTreeView(QTreeWidget):
 
     @pyqtSlot()
     def onWorkerDone(self):
+        log.debug("worker done")
         self.setSortingEnabled(True)
 
+# FIXME: I bet this logger is in another thread and f*cks up
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, parent):
         super().__init__()
