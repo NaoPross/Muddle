@@ -3,6 +3,7 @@
 import argparse
 import configparser
 import logging
+import colorlog
 
 import os
 import sys
@@ -33,9 +34,20 @@ log = logging.getLogger("muddle")
 log.setLevel(logging.DEBUG)
 
 if args.verbose:
-    cli_handler = logging.StreamHandler()
+    cli_handler = colorlog.StreamHandler()
     cli_handler.setLevel(logging.DEBUG)
-    cli_handler.setFormatter(logformatter)
+    cli_formatter = colorlog.ColoredFormatter("%(name)-13s - %(log_color)s%(levelname)-8s%(reset)s: %(message)s",
+        datefmt=None,
+        reset=True,
+        log_colors={
+            'DEBUG':    'cyan',
+            'INFO':     'green',
+            'WARNING':  'yellow',
+            'ERROR':    'red',
+            'CRITICAL': 'red,bg_white',
+        }
+    )
+    cli_handler.setFormatter(cli_formatter)
     log.addHandler(cli_handler)
 
 # C O N F I G S  A N D  L O G S
