@@ -11,7 +11,7 @@ import logging
 
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
-from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QGridLayout, QHBoxLayout, QPushButton, QProgressBar, QTabWidget, QPlainTextEdit
 
 import moodle
@@ -203,19 +203,12 @@ class MoodleTreeView(QTreeWidget):
         self.sortByColumn(0, Qt.AscendingOrder)
         self.setSortingEnabled(True)
 
-# FIXME: I bet this logger is in another thread and f*cks up
-class QPlainTextEditLogger(logging.Handler):
-    def __init__(self, parent):
-        super().__init__()
-        font = QFont("Monospace")
-        font.setStyleHint(QFont.Monospace)
-        self.widget = QPlainTextEdit(parent)
-        self.widget.setReadOnly(True)
-        self.widget.setFont(font)
+class QLogHandler(QObject, logging.Handler):
+    newLogMessage = pyqtSignal(str)
 
     def emit(self, record):
         msg = self.format(record)
-        self.widget.appendPlainText(msg)
+        self.newLogMessage.emit(msg)
 
     def write(self, m):
         pass
@@ -250,14 +243,25 @@ class Muddle(QTabWidget):
         self.tabmoodle.layout().addWidget(self.tabmoodle.progressbar, 2, 0, 1, -1)
 
         # log tabs
-        handler = QPlainTextEditLogger(self)
-        handler.setFormatter(logging.Formatter("%(name)s - %(levelname)s - %(message)s"))
-        logging.getLogger("muddle").addHandler(handler)
+        self.loghandler = QLogHandler(self)
+        self.loghandler.setFormatter(logging.Formatter("%(name)s - %(levelname)s - %(message)s"))
+        self.loghandler.newLogMessage.connect(self.onNewLogMessage)
+        logging.getLogger("muddle").addHandler(self.loghandler)
 
-        self.tablogs = handler.widget
-        self.addTab(self.tablogs, "Logs")
+        font = QFont("Monospace")
+        font.setStyleHint(QFont.Monospace)
+
+        self.logtext = QPlainTextEdit()
+        self.logtext.setReadOnly(True)
+        self.logtext.setFont(font)
+
+        self.addTab(self.logtext, "Logs")
 
         self.show()
+
+    @pyqtSlot(str)
+    def onNewLogMessage(self, msg):
+        self.logtext.appendPlainText(msg)
 
 
 def start(instance_url, token):
