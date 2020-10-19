@@ -97,27 +97,24 @@ class MoodleFetcher(QThread):
                         self.loadedItem.emit(MoodleItem.Type.CONTENT, content)
 
     def getCourses(self):
-        courses = self.api.core_enrol_get_users_courses(userid = self.apihelper.get_userid()).json()
-        if "exception" in courses:
-            log.error("failed to load courses")
-            log.debug(courses)
+        coursesReq = self.api.core_enrol_get_users_courses(userid = self.apihelper.get_userid())
+        if not coursesReq:
             return []
-        else:
-            return courses
+
+        return coursesReq.json()
 
     def getSections(self, course):
         if not "id" in course:
-            log.error("cannot get sections from invalid course")
+            log.error("cannot get sections from invalid course (no id)")
             log.debug(course)
             return []
-        else:
-            sections = self.api.core_course_get_contents(courseid = str(course["id"])).json()
-            if "exception" in sections:
-                log.error(f"failed to load sections from course with id {course['id']} ({course['shortname']})")
-                log.debug(sections)
-                return []
-            else:
-                return sections
+
+        sectionsReq = self.api.core_course_get_contents(courseid = str(course["id"]))
+        if not sectionsReq:
+            return
+
+        sections = sectionsReq.json()
+        return sections
 
     def getModules(self, section):
         if "modules" in section:
