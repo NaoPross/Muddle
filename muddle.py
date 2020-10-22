@@ -63,13 +63,13 @@ if platform.system() == "Linux":
         default_config_dir = pathlib.PurePath(os.environ["XDG_CONFIG_HOME"]).joinpath("muddle/")
 
     elif pathlib.Path("~/.config").expanduser().exists():
-        default_config_dir = pathlib.PurePath("~/.config/muddle/").expanduser()
+        default_config_dir = pathlib.Path("~/.config/muddle/").expanduser()
 
     if os.environ.get("XDG_CACHE_HOME"):
-        default_log_dir = pathlib.PurePath(os.environ["XDG_CACHE_HOME"]).joinpath("muddle/")
+        default_log_dir = pathlib.Path(os.environ["XDG_CACHE_HOME"]).joinpath("muddle/")
 
     elif pathlib.Path("~/.cache").expanduser().exists():
-        default_log_dir = pathlib.PurePath("~/.cache/muddle/").expanduser()
+        default_log_dir = pathlib.Path("~/.cache/muddle/").expanduser()
 
 
 # TODO: implement for other platforms
