@@ -36,14 +36,15 @@ log.setLevel(logging.DEBUG)
 if args.verbose:
     cli_handler = colorlog.StreamHandler()
     cli_handler.setLevel(logging.DEBUG)
-    cli_formatter = colorlog.ColoredFormatter("%(name)-13s - %(log_color)s%(levelname)-8s%(reset)s: %(message)s",
+    cli_formatter = colorlog.ColoredFormatter(
+        "%(name)-13s - %(log_color)s%(levelname)-8s%(reset)s: %(message)s",
         datefmt=None,
         reset=True,
         log_colors={
-            'DEBUG':    'cyan',
-            'INFO':     'green',
-            'WARNING':  'yellow',
-            'ERROR':    'red',
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
             'CRITICAL': 'red,bg_white',
         }
     )

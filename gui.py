@@ -111,7 +111,7 @@ class MoodleFetcher(QThread):
 
         sectionsReq = self.api.core_course_get_contents(courseid = str(course["id"]))
         if not sectionsReq:
-            return
+            return []
 
         sections = sectionsReq.json()
         return sections
@@ -150,7 +150,7 @@ class MoodleTreeView(QTreeWidget):
     @pyqtSlot(QTreeWidgetItem, int)
     def onItemDoubleClicked(self, item, col):
         log.debug(f"double clicked on item with type {str(item.metadata.type)}")
-        if item.type == MoodleItem.Type.FILE:
+        if item.metadata.type == MoodleItem.Type.FILE:
             # TODO: download in a temp folder and open
             pass
 

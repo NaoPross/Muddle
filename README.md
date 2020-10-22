@@ -19,7 +19,14 @@ muddle $ ./muddle --gui
 
 The code is a bit garbage, as I hacked it toghether in one morning, though I've tried to clean it up a bit.
 
-## Compilation / Release
+### Coding style
+
+Use PEP8 except where Qt bindings are used (`gui.py`). To check use
+```
+$ pep8 --show-source --ignore=E501 moodle.py muddle.py <more files...>
+```
+
+### Compilation / Release
 To create an executable you need PyInstaller, you can get it with
 ```
 $ pip3 install pyinstaller

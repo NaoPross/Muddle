@@ -7,15 +7,22 @@ log = logging.getLogger("muddle.moodle")
 #
 # magic moodle api wrapper
 #
+
+
 def request_token(url, user, password):
     token_url = f"{url}/login/token.php"
-    data = { "username": user, "password": password, "service": "moodle_mobile_app" }
+    data = {
+        "username": user,
+        "password": password,
+        "service": "moodle_mobile_app"
+    }
     log.debug(f"requesting token with POST to {api_url} with DATA {data}")
     return requests.post(token_url, data=data)
 
+
 def api_call(url, token, function, **kwargs):
     api_url = f"{url}/webservice/rest/server.php?moodlewsrestformat=json"
-    data = { "wstoken": token, "wsfunction": function }
+    data = {"wstoken": token, "wsfunction": function}
     for k, v in kwargs.items():
         data[str(k)] = v
 
@@ -31,6 +38,7 @@ def api_call(url, token, function, **kwargs):
         log.error(f"Failed to connect for POST request:\n{str(e)}")
         return None
 
+
 class RestApi:
     def __init__(self, instance_url, token):
         self._url = instance_url
@@ -38,6 +46,7 @@ class RestApi:
 
     def __getattr__(self, key):
         return lambda **kwargs: api_call(self._url, self._token, str(key), **kwargs)
+
 
 class ApiHelper:
     def __init__(self, api):
