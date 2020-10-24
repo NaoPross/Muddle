@@ -2,12 +2,15 @@
 # This document *and this document only* uses the Qt naming convention instead
 # of PEP because the PyQt5 bindings do not have pythonic names
 #
-
+import os
+import platform
+import subprocess
 import sys
 import json
 import enum
 import html
 import logging
+import tempfile
 
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
@@ -151,8 +154,19 @@ class MoodleTreeView(QTreeWidget):
     def onItemDoubleClicked(self, item, col):
         log.debug(f"double clicked on item with type {str(item.metadata.type)}")
         if item.metadata.type == MoodleItem.Type.FILE:
-            # TODO: download in a temp folder and open
-            pass
+            log.debug(f"started download from {item.metadata.url}")
+            filepath = tempfile.gettempdir()+"/"+item.metadata.title
+            self.worker.apihelper.get_file(item.metadata.url, filepath)
+
+            # TODO: Maybe extract in util function
+            if platform.system() == 'Darwin':       # macOS
+                subprocess.call(('open', ))
+            elif platform.system() == 'Windows':    # Windows
+                os.startfile(filepath)
+            else:                                   # linux variants
+                subprocess.call(('xdg-open', filepath))
+
+
 
     @pyqtSlot(MoodleItem.Type, object)
     def onWorkerLoadedItem(self, type, item):
