@@ -158,13 +158,12 @@ class MoodleTreeView(QTreeWidget):
             filepath = tempfile.gettempdir()+"/"+item.metadata.title
             self.worker.apihelper.get_file(item.metadata.url, filepath)
 
-            # TODO: Maybe extract in util function
             if platform.system() == 'Darwin':       # macOS
-                subprocess.call(('open', ))
+                subprocess.Popen(('open', filepath))
             elif platform.system() == 'Windows':    # Windows
                 os.startfile(filepath)
             else:                                   # linux variants
-                subprocess.call(('xdg-open', filepath))
+                subprocess.Popen(('xdg-open', filepath))
 
 
 
