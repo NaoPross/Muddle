@@ -15,7 +15,19 @@ import tempfile
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
 from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal, QObject
-from PyQt5.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QGridLayout, QHBoxLayout, QPushButton, QProgressBar, QTabWidget, QPlainTextEdit
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QTreeWidgetItemIterator,
+    QGridLayout,
+    QHBoxLayout,
+    QPushButton,
+    QProgressBar,
+    QTabWidget,
+    QPlainTextEdit
+)
 
 import moodle
 
