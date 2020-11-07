@@ -12,11 +12,13 @@ import html
 import logging
 import tempfile
 
+from PyQt5 import uic
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
 from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtWidgets import (
     QApplication,
+    QMainWindow,
     QWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -24,6 +26,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QPushButton,
+    QToolButton,
     QProgressBar,
     QTabWidget,
     QPlainTextEdit
@@ -101,7 +104,6 @@ class MoodleFetcher(QThread):
         self.apihelper = moodle.ApiHelper(self.api)
 
     def run(self):
-        # This is beyond bad but I don't have access to the moodle documentation, so I had to guess
         for course in self.getCourses():
             self.loadedItem.emit(MoodleItem.Type.COURSE, course)
             for section in self.getSections(course):
@@ -143,24 +145,24 @@ class MoodleFetcher(QThread):
         else:
             return []
 
-class MoodleTreeView(QTreeWidget):
-    def __init__(self, parent, instance_url, token):
+
+class MoodleTreeWidget(QTreeWidget):
+    def __init__(self, parent):
         super().__init__(parent)
+        self.itemDoubleClicked.connect(self.onItemDoubleClicked, Qt.QueuedConnection)
 
         self.lastInsertedItem = None
+        self.worker = None
 
-        self.initUi()
-
-        self.worker = MoodleFetcher(self, instance_url, token)
-        self.worker.loadedItem.connect(self.onWorkerLoadedItem)
-        self.worker.finished.connect(self.onWorkerDone)
-        self.worker.start()
-
-        self.show()
-
-    def initUi(self):
-        self.setHeaderHidden(True)
-        self.itemDoubleClicked.connect(self.onItemDoubleClicked, Qt.QueuedConnection)
+    @pyqtSlot(str, str)
+    def refresh(self, instance_url, token):
+        if not self.worker or not self.worker.isFinished():
+            self.worker = MoodleFetcher(self, instance_url, token)
+            self.worker.loadedItem.connect(self.onWorkerLoadedItem)
+            self.worker.finished.connect(self.onWorkerDone)
+            self.worker.start()
+        else:
+            log.debug("A worker is already running, not refreshing")
 
     @pyqtSlot(QTreeWidgetItem, int)
     def onItemDoubleClicked(self, item, col):
@@ -176,8 +178,6 @@ class MoodleTreeView(QTreeWidget):
                 os.startfile(filepath)
             else:                                   # linux variants
                 subprocess.Popen(('xdg-open', filepath))
-
-
 
     @pyqtSlot(MoodleItem.Type, object)
     def onWorkerLoadedItem(self, type, item):
@@ -225,6 +225,7 @@ class MoodleTreeView(QTreeWidget):
         self.sortByColumn(0, Qt.AscendingOrder)
         self.setSortingEnabled(True)
 
+
 class QLogHandler(QObject, logging.Handler):
     newLogMessage = pyqtSignal(str)
 
@@ -235,58 +236,31 @@ class QLogHandler(QObject, logging.Handler):
     def write(self, m):
         pass
 
-class Muddle(QTabWidget):
+
+class MuddleWindow(QMainWindow):
     def __init__(self, instance_url, token):
-        super().__init__()
-        self.instance_url = instance_url
-        self.token = token
-        self.initUi()
+        super(MuddleWindow, self).__init__()
+        uic.loadUi("muddle.ui", self)
+        self.setCentralWidget(self.findChild(QTabWidget, "Muddle"))
 
-    def initUi(self):
-        self.setWindowTitle("Muddle")
-
-        # moodle tab
-        self.tabmoodle = QWidget()
-        self.addTab(self.tabmoodle, "Moodle")
-
-        self.tabmoodle.setLayout(QGridLayout())
-        self.tabmoodle.layout().addWidget(MoodleTreeView(self, self.instance_url, self.token), 0, 0, 1, -1)
-
-        # TODO: make number of selected element appear
-        # TODO: add path selector, to select where to download the files
-        self.tabmoodle.downloadbtn = QPushButton("Download")
-        self.tabmoodle.selectallbtn = QPushButton("Select All")
-        self.tabmoodle.deselectallbtn = QPushButton("Deselect All")
-        self.tabmoodle.progressbar = QProgressBar()
-
-        self.tabmoodle.layout().addWidget(self.tabmoodle.downloadbtn, 1, 0)
-        self.tabmoodle.layout().addWidget(self.tabmoodle.selectallbtn, 1, 1)
-        self.tabmoodle.layout().addWidget(self.tabmoodle.deselectallbtn, 1, 2)
-        self.tabmoodle.layout().addWidget(self.tabmoodle.progressbar, 2, 0, 1, -1)
-
-        # log tabs
+        # setup logging
         self.loghandler = QLogHandler(self)
         self.loghandler.setFormatter(logging.Formatter("%(name)s - %(levelname)s - %(message)s"))
         self.loghandler.newLogMessage.connect(self.onNewLogMessage)
         logging.getLogger("muddle").addHandler(self.loghandler)
 
-        font = QFont("Monospace")
-        font.setStyleHint(QFont.Monospace)
-
-        self.logtext = QPlainTextEdit()
-        self.logtext.setReadOnly(True)
-        self.logtext.setFont(font)
-
-        self.addTab(self.logtext, "Logs")
+        refreshBtn = self.findChild(QToolButton, "refreshBtn")
+        moodleTreeWidget = self.findChild(MoodleTreeWidget, "moodleTree")
+        refreshBtn.clicked.connect(lambda b: moodleTreeWidget.refresh(instance_url, token))
 
         self.show()
 
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
-        self.logtext.appendPlainText(msg)
+        self.findChild(QPlainTextEdit, "logsTab").appendPlainText(msg)
 
 
 def start(instance_url, token):
     app = QApplication(sys.argv)
-    ex = Muddle(instance_url, token)
+    ex = MuddleWindow(instance_url, token)
     sys.exit(app.exec_())
