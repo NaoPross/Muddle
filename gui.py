@@ -15,18 +15,30 @@ import tempfile
 from PyQt5 import uic
 from PyQt5.QtGui import QFont
 from PyQt5.Qt import QStyle
-from PyQt5.QtCore import Qt, QThread, pyqtSlot, pyqtSignal, QObject
+
+from PyQt5.QtCore import (
+    Qt,
+    QThread,
+    pyqtSlot,
+    pyqtSignal,
+    QObject,
+    QSortFilterProxyModel,
+)
+
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
     QWidget,
+    QTreeView,
     QTreeWidget,
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
+    QHeaderView,
     QGridLayout,
     QHBoxLayout,
     QPushButton,
     QToolButton,
+    QLineEdit,
     QProgressBar,
     QTabWidget,
     QPlainTextEdit
@@ -94,6 +106,7 @@ class MoodleItem(QTreeWidgetItem):
         self.setChildIndicatorPolicy(QTreeWidgetItem.DontShowIndicatorWhenChildless)
         self.setText(0, html.unescape(self.metadata.title))
 
+
 class MoodleFetcher(QThread):
     loadedItem = pyqtSignal(MoodleItem.Type, object)
 
@@ -146,17 +159,28 @@ class MoodleFetcher(QThread):
             return []
 
 
+class MoodleTreeFilterModel(QSortFilterProxyModel):
+    def __init__(self):
+        super().__init__()
+
+
 class MoodleTreeWidget(QTreeWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.itemDoubleClicked.connect(self.onItemDoubleClicked, Qt.QueuedConnection)
+
+        self.setHeaderLabels(["Item", "Size"])
+        self.sortByColumn(0, Qt.AscendingOrder)
 
         self.lastInsertedItem = None
         self.worker = None
 
     @pyqtSlot(str, str)
     def refresh(self, instance_url, token):
-        if not self.worker or not self.worker.isFinished():
+        if not self.worker or self.worker.isFinished():
+            self.setSortingEnabled(False)
+            # TODO: remove elements if present
+
             self.worker = MoodleFetcher(self, instance_url, token)
             self.worker.loadedItem.connect(self.onWorkerLoadedItem)
             self.worker.finished.connect(self.onWorkerDone)
@@ -222,7 +246,6 @@ class MoodleTreeWidget(QTreeWidget):
     @pyqtSlot()
     def onWorkerDone(self):
         log.debug("worker done")
-        self.sortByColumn(0, Qt.AscendingOrder)
         self.setSortingEnabled(True)
 
 
@@ -249,11 +272,32 @@ class MuddleWindow(QMainWindow):
         self.loghandler.newLogMessage.connect(self.onNewLogMessage)
         logging.getLogger("muddle").addHandler(self.loghandler)
 
+        # set up proxymodel for moodle treeview
+        moodleTreeWidget = MoodleTreeWidget(None)
+        self.filter = MoodleTreeFilterModel()
+        self.filter.setRecursiveFilteringEnabled(True)
+
+        moodleTreeView = self.findChild(QTreeView, "moodleTree")
+        self.filter.setSourceModel(moodleTreeWidget.model())
+        moodleTreeView.setModel(self.filter)
+        moodleTreeView.setColumnWidth(0, 420)
+
+        # refresh moodle treeview
         refreshBtn = self.findChild(QToolButton, "refreshBtn")
-        moodleTreeWidget = self.findChild(MoodleTreeWidget, "moodleTree")
         refreshBtn.clicked.connect(lambda b: moodleTreeWidget.refresh(instance_url, token))
 
+        # searchbar
+        searchBar = self.findChild(QLineEdit, "searchBar")
+        searchBar.textChanged.connect(self.onSearchBarTextChanged)
+
         self.show()
+
+    @pyqtSlot(str)
+    def onSearchBarTextChanged(self, text):
+        if not text:
+            self.filter.invalidateFilter()
+        else:
+            self.filter.setFilterRegExp(text)
 
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
