@@ -40,7 +40,7 @@
      <item row="2" column="0">
       <widget class="QLineEdit" name="downloadPathEdit">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -87,7 +87,7 @@
      <item row="2" column="1">
       <widget class="QToolButton" name="selectPathBtn">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="text">
         <string>Select</string>
@@ -103,20 +103,10 @@
      </item>
     </layout>
    </widget>
-   <widget class="QTreeWidget" name="localTab">
+   <widget class="QTreeView" name="localTab">
     <attribute name="title">
      <string>Local</string>
     </attribute>
-    <column>
-     <property name="text">
-      <string notr="true">Name</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Size</string>
-     </property>
-    </column>
    </widget>
    <widget class="QPlainTextEdit" name="logsTab">
     <property name="sizePolicy">
@@ -194,6 +184,23 @@
            <bool>true</bool>
           </property>
          </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="defaultDownloadPathLabel">
+          <property name="text">
+           <string>Default download path</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QCheckBox" name="checkBox">
+          <property name="text">
+           <string>Always start GUI</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="defaltDownloadPathEdit"/>
         </item>
        </layout>
       </widget>

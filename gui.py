@@ -18,6 +18,7 @@ from PyQt5.Qt import QStyle
 
 from PyQt5.QtCore import (
     Qt,
+    QDir,
     QThread,
     pyqtSlot,
     pyqtSignal,
@@ -41,7 +42,9 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QTabWidget,
-    QPlainTextEdit
+    QPlainTextEdit,
+    QFileSystemModel,
+    QFileDialog,
 )
 
 import moodle
@@ -179,7 +182,7 @@ class MoodleTreeWidget(QTreeWidget):
     def refresh(self, instance_url, token):
         if not self.worker or self.worker.isFinished():
             self.setSortingEnabled(False)
-            # TODO: remove elements if present
+            self.clear()
 
             self.worker = MoodleFetcher(self, instance_url, token)
             self.worker.loadedItem.connect(self.onWorkerLoadedItem)
@@ -290,6 +293,25 @@ class MuddleWindow(QMainWindow):
         searchBar = self.findChild(QLineEdit, "searchBar")
         searchBar.textChanged.connect(self.onSearchBarTextChanged)
 
+        # local filesystem view
+        self.downloadPath = QDir.homePath()
+
+        self.fileSystemModel = QFileSystemModel()
+        self.fileSystemModel.setRootPath(QDir.homePath())
+
+        localTreeView = self.findChild(QTreeView, "localTab")
+        localTreeView.setModel(self.fileSystemModel)
+        localTreeView.setRootIndex(self.fileSystemModel.index(QDir.homePath()))
+        localTreeView.setColumnWidth(0, 240)
+
+        downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
+        downloadPathEdit.setText(self.downloadPath)
+        downloadPathEdit.editingFinished.connect(self.onDownloadPathEditEditingFinished)
+
+        # select path
+        selectPathBtn = self.findChild(QToolButton, "selectPathBtn")
+        selectPathBtn.clicked.connect(self.onSelectPathBtnClicked)
+
         self.show()
 
     @pyqtSlot(str)
@@ -302,6 +324,38 @@ class MuddleWindow(QMainWindow):
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
         self.findChild(QPlainTextEdit, "logsTab").appendPlainText(msg)
+
+    @pyqtSlot()
+    def onDownloadPathEditEditingFinished(self):
+        downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
+        path = downloadPathEdit.text()
+
+        if not self.updateDownloadPath(path):
+            downloadPathEdit.setText(self.downloadPath)
+
+    @pyqtSlot()
+    def onSelectPathBtnClicked(self):
+        path = QFileDialog.getExistingDirectory(
+                self, "Select Download Directory",
+                self.downloadPath, QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+
+        if not path:
+            return
+
+        self.updateDownloadPath(path)
+
+    @pyqtSlot()
+    def updateDownloadPath(self, newpath):
+        if not self.fileSystemModel.index(newpath).isValid():
+            return False
+
+        self.downloadPath = newpath
+
+        downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
+        localTreeView = self.findChild(QTreeView, "localTab")
+
+        downloadPathEdit.setText(self.downloadPath)
+        localTreeView.setRootIndex(self.fileSystemModel.index(self.downloadPath))
 
 
 def start(instance_url, token):
