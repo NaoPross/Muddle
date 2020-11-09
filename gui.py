@@ -23,6 +23,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
     pyqtSignal,
     QObject,
+    QRegularExpression,
     QSortFilterProxyModel,
 )
 
@@ -276,7 +277,7 @@ class MuddleWindow(QMainWindow):
         logging.getLogger("muddle").addHandler(self.loghandler)
 
         # set up proxymodel for moodle treeview
-        moodleTreeWidget = MoodleTreeWidget(None)
+        moodleTreeWidget = MoodleTreeWidget(None) # TODO: refractor into model
         self.filter = MoodleTreeFilterModel()
         self.filter.setRecursiveFilteringEnabled(True)
 
@@ -292,6 +293,7 @@ class MuddleWindow(QMainWindow):
         # searchbar
         searchBar = self.findChild(QLineEdit, "searchBar")
         searchBar.textChanged.connect(self.onSearchBarTextChanged)
+        searchBar.textEdited.connect(self.onSearchBarTextChanged)
 
         # local filesystem view
         self.downloadPath = QDir.homePath()
@@ -317,9 +319,14 @@ class MuddleWindow(QMainWindow):
     @pyqtSlot(str)
     def onSearchBarTextChanged(self, text):
         if not text:
-            self.filter.invalidateFilter()
+            self.filter.setFilterRegularExpression(".*")
         else:
-            self.filter.setFilterRegExp(text)
+            regexp = QRegularExpression(text)
+            if regexp.isValid():
+                self.filter.setFilterRegularExpression(regexp)
+                self.findChild(QTreeView, "moodleTree").expandAll()
+            else:
+                log.debug("invalid search regular expression, not searching")
 
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
