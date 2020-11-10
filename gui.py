@@ -24,6 +24,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
     QObject,
     QRegularExpression,
+    QModelIndex,
     QSortFilterProxyModel,
 )
 
@@ -248,7 +249,6 @@ class MoodleTreeModel(QStandardItemModel):
 
         parent.insertRow(0, moodleItem)
         self.lastInsertedItem = moodleItem
-        log.debug(f"inserted item of type {moodleItem.metadata.type}")
 
     @pyqtSlot()
     def onWorkerDone(self):
@@ -292,6 +292,7 @@ class MuddleWindow(QMainWindow):
         moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
         # TODO: change with minimumSize (?)
         moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        moodleTreeView.doubleClicked.connect(self.onMoodleTreeViewDoubleClicked)
 
         # refresh moodle treeview
         refreshBtn = self.findChild(QToolButton, "refreshBtn")
@@ -372,6 +373,24 @@ class MuddleWindow(QMainWindow):
 
         downloadPathEdit.setText(self.downloadPath)
         localTreeView.setRootIndex(self.fileSystemModel.index(self.downloadPath))
+
+    @pyqtSlot(QModelIndex)
+    def onMoodleTreeViewDoubleClicked(self, index):
+        realIndex = self.filterModel.mapToSource(index)
+        item = self.moodleTreeModel.itemFromIndex(realIndex)
+
+        if item.metadata.type == MoodleItem.Type.FILE:
+            log.debug(f"started download from {item.metadata.url}")
+
+            filepath = tempfile.gettempdir()+"/"+item.metadata.title
+            self.moodleTreeModel.worker.apihelper.get_file(item.metadata.url, filepath)
+
+            if platform.system() == 'Darwin':       # macOS
+                subprocess.Popen(('open', filepath))
+            elif platform.system() == 'Windows':    # Windows
+                os.startfile(filepath)
+            else:                                   # linux variants
+                subprocess.Popen(('xdg-open', filepath))
 
 
 def start(instance_url, token):
