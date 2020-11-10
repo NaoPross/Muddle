@@ -13,7 +13,7 @@ import logging
 import tempfile
 
 from PyQt5 import uic
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon, QStandardItemModel, QStandardItem
 from PyQt5.Qt import QStyle
 
 from PyQt5.QtCore import (
@@ -52,7 +52,7 @@ import moodle
 
 log = logging.getLogger("muddle.gui")
 
-class MoodleItem(QTreeWidgetItem):
+class MoodleItem(QStandardItem):
     class Type(enum.IntEnum):
         ROOT       = 0
         # root
@@ -82,13 +82,8 @@ class MoodleItem(QTreeWidgetItem):
     def __init__(self, parent, nodetype, leaves=[], **kwargs):
         super().__init__(parent)
         self.metadata = MoodleItem.Metadata(type = nodetype, **kwargs)
-        self.setupQt()
 
-    def setupQt(self):
-        font = QFont("Monospace")
-        font.setStyleHint(QFont.Monospace)
-        self.setFont(0, font)
-
+        # set icon
         icons = {
             MoodleItem.Type.COURSE   : QStyle.SP_DriveNetIcon,
             MoodleItem.Type.FOLDER   : QStyle.SP_DirIcon,
@@ -97,18 +92,18 @@ class MoodleItem(QTreeWidgetItem):
             MoodleItem.Type.URL      : QStyle.SP_FileLinkIcon,
         }
 
-        if icons.get(self.metadata.type):
-            self.setIcon(0, QApplication.style().standardIcon(icons[self.metadata.type]))
-
-        flags = self.flags()
-        if self.metadata.type in [ MoodleItem.Type.FILE, MoodleItem.Type.FOLDER, MoodleItem.Type.RESOURCE ]:
-            self.setFlags(flags | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
-            self.setCheckState(0, Qt.Unchecked)
+        if self.metadata.type in icons.keys():
+            self.setIcon(QApplication.style().standardIcon(icons[self.metadata.type]))
         else:
-            self.setFlags(flags & ~Qt.ItemIsUserCheckable)
+            # remove icon, because otherwise it inherits the parent's icon
+            self.setIcon(QIcon())
 
-        self.setChildIndicatorPolicy(QTreeWidgetItem.DontShowIndicatorWhenChildless)
-        self.setText(0, html.unescape(self.metadata.title))
+        if self.metadata.type in [ MoodleItem.Type.FILE, MoodleItem.Type.FOLDER, MoodleItem.Type.RESOURCE ]:
+            self.setCheckable(True)
+            self.setCheckState(Qt.Unchecked)
+
+        self.setEditable(False)
+        self.setText(html.unescape(self.metadata.title))
 
 
 class MoodleFetcher(QThread):
@@ -168,22 +163,18 @@ class MoodleTreeFilterModel(QSortFilterProxyModel):
         super().__init__()
 
 
-class MoodleTreeWidget(QTreeWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.itemDoubleClicked.connect(self.onItemDoubleClicked, Qt.QueuedConnection)
+class MoodleTreeModel(QStandardItemModel):
+    def __init__(self):
+        super().__init__()
 
-        self.setHeaderLabels(["Item", "Size"])
-        self.sortByColumn(0, Qt.AscendingOrder)
-
+        self.setHorizontalHeaderLabels(["Item", "Size"])
         self.lastInsertedItem = None
         self.worker = None
 
     @pyqtSlot(str, str)
     def refresh(self, instance_url, token):
         if not self.worker or self.worker.isFinished():
-            self.setSortingEnabled(False)
-            self.clear()
+            self.setRowCount(0) # instead of clear(), because clear() removes the headers
 
             self.worker = MoodleFetcher(self, instance_url, token)
             self.worker.loadedItem.connect(self.onWorkerLoadedItem)
@@ -192,37 +183,37 @@ class MoodleTreeWidget(QTreeWidget):
         else:
             log.debug("A worker is already running, not refreshing")
 
-    @pyqtSlot(QTreeWidgetItem, int)
-    def onItemDoubleClicked(self, item, col):
-        log.debug(f"double clicked on item with type {str(item.metadata.type)}")
-        if item.metadata.type == MoodleItem.Type.FILE:
-            log.debug(f"started download from {item.metadata.url}")
-            filepath = tempfile.gettempdir()+"/"+item.metadata.title
-            self.worker.apihelper.get_file(item.metadata.url, filepath)
-
-            if platform.system() == 'Darwin':       # macOS
-                subprocess.Popen(('open', filepath))
-            elif platform.system() == 'Windows':    # Windows
-                os.startfile(filepath)
-            else:                                   # linux variants
-                subprocess.Popen(('xdg-open', filepath))
-
     @pyqtSlot(MoodleItem.Type, object)
     def onWorkerLoadedItem(self, type, item):
         # Assume that the items arrive in order
         moodleItem = None
         parent = None
 
+        # if top level
         if type == MoodleItem.Type.COURSE:
-            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["shortname"])
-            self.addTopLevelItem(moodleItem)
-        else:
-            parent = self.lastInsertedItem
-            while type <= parent.metadata.type and parent.parent():
-                parent = parent.parent()
+            moodleItem = MoodleItem(
+                parent = parent,
+                nodetype = type,
+                id = item["id"],
+                title = item["shortname"])
+
+            self.invisibleRootItem().insertRow(0, moodleItem)
+            self.lastInsertedItem = moodleItem
+
+            return
+
+        # otherwise
+        parent = self.lastInsertedItem
+        while type <= parent.metadata.type and parent.parent():
+            parent = parent.parent()
 
         if type == MoodleItem.Type.SECTION:
-            moodleItem = MoodleItem(parent = parent, nodetype = type, id = item["id"], title = item["name"])
+            moodleItem = MoodleItem(
+                parent = parent,
+                nodetype = type,
+                id = item["id"],
+                title = item["name"])
+
         elif type == MoodleItem.Type.MODULE:
             moduleType = {
                 "folder"     : MoodleItem.Type.FOLDER,
@@ -233,24 +224,35 @@ class MoodleTreeWidget(QTreeWidget):
                 "quiz"       : MoodleItem.Type.QUIZ,
             }
 
-            moodleItem = MoodleItem(parent = parent, nodetype = moduleType.get(item["modname"]) or type, id = item["id"], title = item["name"])
+            moodleItem = MoodleItem(
+                parent = parent,
+                nodetype = moduleType.get(item["modname"]) or type,
+                id = item["id"],
+                title = item["name"])
+
         elif type == MoodleItem.Type.CONTENT:
             contentType = {
                 "url" : MoodleItem.Type.URL,
                 "file" : MoodleItem.Type.FILE,
             }
-            moodleItem = MoodleItem(parent = parent, nodetype = contentType.get(item["type"]) or type, title = item["filename"], url = item["fileurl"])
+
+            moodleItem = MoodleItem(
+                parent = parent,
+                nodetype = contentType.get(item["type"]) or type,
+                title = item["filename"],
+                url = item["fileurl"])
 
         if not moodleItem:
             log.error(f"Could not load item of type {type}")
             return
 
+        parent.insertRow(0, moodleItem)
         self.lastInsertedItem = moodleItem
+        log.debug(f"inserted item of type {moodleItem.metadata.type}")
 
     @pyqtSlot()
     def onWorkerDone(self):
         log.debug("worker done")
-        self.setSortingEnabled(True)
 
 
 class QLogHandler(QObject, logging.Handler):
@@ -277,18 +279,23 @@ class MuddleWindow(QMainWindow):
         logging.getLogger("muddle").addHandler(self.loghandler)
 
         # set up proxymodel for moodle treeview
-        moodleTreeWidget = MoodleTreeWidget(None) # TODO: refractor into model
-        self.filter = MoodleTreeFilterModel()
-        self.filter.setRecursiveFilteringEnabled(True)
+        self.moodleTreeModel = MoodleTreeModel()
+        self.filterModel = MoodleTreeFilterModel()
+
+        self.filterModel.setRecursiveFilteringEnabled(True)
+        self.filterModel.setDynamicSortFilter(True)
 
         moodleTreeView = self.findChild(QTreeView, "moodleTree")
-        self.filter.setSourceModel(moodleTreeWidget.model())
-        moodleTreeView.setModel(self.filter)
-        moodleTreeView.setColumnWidth(0, 420)
+        self.filterModel.setSourceModel(self.moodleTreeModel)
+        moodleTreeView.setModel(self.filterModel)
+        moodleTreeView.setSortingEnabled(True)
+        moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
+        # TODO: change with minimumSize (?)
+        moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         # refresh moodle treeview
         refreshBtn = self.findChild(QToolButton, "refreshBtn")
-        refreshBtn.clicked.connect(lambda b: moodleTreeWidget.refresh(instance_url, token))
+        refreshBtn.clicked.connect(lambda b: self.moodleTreeModel.refresh(instance_url, token))
 
         # searchbar
         searchBar = self.findChild(QLineEdit, "searchBar")
@@ -304,7 +311,7 @@ class MuddleWindow(QMainWindow):
         localTreeView = self.findChild(QTreeView, "localTab")
         localTreeView.setModel(self.fileSystemModel)
         localTreeView.setRootIndex(self.fileSystemModel.index(QDir.homePath()))
-        localTreeView.setColumnWidth(0, 240)
+        localTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
         downloadPathEdit.setText(self.downloadPath)
@@ -318,13 +325,15 @@ class MuddleWindow(QMainWindow):
 
     @pyqtSlot(str)
     def onSearchBarTextChanged(self, text):
+        moodleTreeView = self.findChild(QTreeView, "moodleTree")
         if not text:
-            self.filter.setFilterRegularExpression(".*")
+            self.filterModel.setFilterRegularExpression(".*")
+            moodleTreeView.collapseAll()
         else:
             regexp = QRegularExpression(text)
             if regexp.isValid():
-                self.filter.setFilterRegularExpression(regexp)
-                self.findChild(QTreeView, "moodleTree").expandAll()
+                self.filterModel.setFilterRegularExpression(regexp)
+                moodleTreeView.expandAll()
             else:
                 log.debug("invalid search regular expression, not searching")
 
