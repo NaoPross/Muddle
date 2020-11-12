@@ -20,6 +20,7 @@ from PyQt5.QtCore import (
     Qt,
     QDir,
     QThread,
+    QSignalBlocker,
     pyqtSlot,
     pyqtSignal,
     QObject,
@@ -100,6 +101,9 @@ class MoodleItem(QStandardItem):
             self.setIcon(QIcon())
 
         if self.metadata.type in [ MoodleItem.Type.FILE, MoodleItem.Type.FOLDER, MoodleItem.Type.RESOURCE ]:
+            # NOTE: because of a Qt Bug setAutoTristate does not work
+            # the tri-state behavior is implemented below in
+            # MuddleWindow.onMoodleTreeModelDataChanged()
             self.setCheckable(True)
             self.setCheckState(Qt.Unchecked)
 
@@ -280,13 +284,14 @@ class MuddleWindow(QMainWindow):
 
         # set up proxymodel for moodle treeview
         self.moodleTreeModel = MoodleTreeModel()
-        self.filterModel = MoodleTreeFilterModel()
+        self.moodleTreeModel.dataChanged.connect(self.onMoodleTreeModelDataChanged)
 
+        self.filterModel = MoodleTreeFilterModel()
         self.filterModel.setRecursiveFilteringEnabled(True)
         self.filterModel.setDynamicSortFilter(True)
+        self.filterModel.setSourceModel(self.moodleTreeModel)
 
         moodleTreeView = self.findChild(QTreeView, "moodleTree")
-        self.filterModel.setSourceModel(self.moodleTreeModel)
         moodleTreeView.setModel(self.filterModel)
         moodleTreeView.setSortingEnabled(True)
         moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
@@ -391,6 +396,19 @@ class MuddleWindow(QMainWindow):
                 os.startfile(filepath)
             else:                                   # linux variants
                 subprocess.Popen(('xdg-open', filepath))
+
+    # this is here to emulate the behavior of setAutoTristate which does not
+    # work because of a Qt Bug
+    @pyqtSlot(QModelIndex, QModelIndex)
+    def onMoodleTreeModelDataChanged(self, topLeft, bottomRight):
+        # TODO: this can probably be moved in Item.setData() by creating AutoTriStateRole
+        item = self.moodleTreeModel.itemFromIndex(topLeft)
+
+        if item.hasChildren():
+            for i in range(0, item.rowCount()):
+                # NOTE: this causes the child to emit a signal, which
+                # automatically causes to recursively set its children
+                item.child(i).setCheckState(item.checkState())
 
 
 def start(instance_url, token):
