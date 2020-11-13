@@ -382,16 +382,21 @@ class MuddleWindow(QMainWindow):
     @pyqtSlot(str)
     def onSearchBarTextChanged(self, text):
         moodleTreeView = self.findChild(QTreeView, "moodleTree")
+        searchBar = self.findChild(QLineEdit, "searchBar")
+
         if not text:
             self.filterModel.setFilterRegularExpression(".*")
             moodleTreeView.collapseAll()
+            searchBar.setStyleSheet("")
         else:
             regexp = QRegularExpression(text)
             if regexp.isValid():
                 self.filterModel.setFilterRegularExpression(regexp)
                 moodleTreeView.expandAll()
+                searchBar.setStyleSheet("")
             else:
                 log.debug("invalid search regular expression, not searching")
+                searchBar.setStyleSheet("QLineEdit { color: red; }")
 
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
