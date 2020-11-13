@@ -117,6 +117,10 @@ log.debug(f"reading config file {config_file}")
 config = configparser.ConfigParser()
 config.read(config_file)
 
+# runtime data that should NOT be written
+config.add_section("runtime_data")
+config["runtime_data"]["config_path"] = str(config_file)
+
 
 # S T A R T
 
@@ -129,5 +133,5 @@ are welcome to redistribute it under certain conditions; see LICENSE.txt for
 details. Project repository: https://github.com/NaoPross/Muddle
 """)
 
-if args.gui:
-    gui.start(config["server"]["url"], config["server"]["token"])
+if args.gui or config.getboolean("muddle", "always_run_gui"):
+    gui.start(config)

@@ -1,3 +1,6 @@
 [server]
 url = https://moodle.rj.ost.ch
 token = <your token here>
+
+[muddle]
+always_run_gui = false

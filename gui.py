@@ -48,6 +48,7 @@ from PyQt5.QtWidgets import (
     QPlainTextEdit,
     QFileSystemModel,
     QFileDialog,
+    QCheckBox,
 )
 
 import moodle
@@ -114,10 +115,10 @@ class MoodleItem(QStandardItem):
 class MoodleFetcher(QThread):
     loadedItem = pyqtSignal(MoodleItem.Type, object)
 
-    def __init__(self, parent, instance_url, token):
+    def __init__(self, parent, instanceUrl, token):
         super().__init__()
 
-        self.api = moodle.RestApi(instance_url, token)
+        self.api = moodle.RestApi(instanceUrl, token)
         self.apihelper = moodle.ApiHelper(self.api)
 
     def run(self):
@@ -177,11 +178,11 @@ class MoodleTreeModel(QStandardItemModel):
         self.worker = None
 
     @pyqtSlot(str, str)
-    def refresh(self, instance_url, token):
+    def refresh(self, instanceUrl, token):
         if not self.worker or self.worker.isFinished():
             self.setRowCount(0) # instead of clear(), because clear() removes the headers
 
-            self.worker = MoodleFetcher(self, instance_url, token)
+            self.worker = MoodleFetcher(self, instanceUrl, token)
             self.worker.loadedItem.connect(self.onWorkerLoadedItem)
             self.worker.finished.connect(self.onWorkerDone)
             self.worker.start()
@@ -271,18 +272,51 @@ class QLogHandler(QObject, logging.Handler):
 
 
 class MuddleWindow(QMainWindow):
-    def __init__(self, instance_url, token):
+    def __init__(self, config):
         super(MuddleWindow, self).__init__()
         uic.loadUi("muddle.ui", self)
         self.setCentralWidget(self.findChild(QTabWidget, "Muddle"))
 
-        # setup logging
+        self.instanceUrl = config["server"]["url"] if config.has_option("server", "url") else None
+        self.token = config["server"]["token"] if config.has_option("server", "token") else None
+
+        # config tab
+        ## TODO: when any of the settings change, update the values (but not in the config, yet)
+
+        instanceUrlEdit = self.findChild(QLineEdit, "instanceUrlEdit")
+        if self.instanceUrl:
+            instanceUrlEdit.setText(self.instanceUrl)
+
+        tokenEdit = self.findChild(QLineEdit, "tokenEdit")
+        if self.token:
+            tokenEdit.setText(self.token)
+
+        requestTokenBtn = self.findChild(QPushButton, "requestTokenBtn")
+        requestTokenBtn.clicked.connect(self.onRequestTokenBtnClicked)
+
+        tokenEdit.textEdited.connect(lambda text: requestTokenBtn.setEnabled(not bool(text)))
+
+        alwaysStartGuiCheckBox = self.findChild(QCheckBox, "alwaysStartGuiCheckBox")
+        if config.has_option("muddle", "always_run_gui"):
+            alwaysStartGuiCheckBox.setChecked(config.getboolean("muddle", "always_run_gui"))
+
+        configEdit = self.findChild(QLineEdit, "configEdit")
+        configEdit.setText(config["runtime_data"]["config_path"])
+
+        defaultDownloadPathEdit = self.findChild(QLineEdit, "defaultDownloadPathEdit")
+        if config.has_option("muddle", "default_download_dir"):
+            defaultDownloadPathEdit.setText(config["muddle"]["default_download_dir"])
+
+
+        # log tab
+        ## setup logging
         self.loghandler = QLogHandler(self)
         self.loghandler.setFormatter(logging.Formatter("%(name)s - %(levelname)s - %(message)s"))
         self.loghandler.newLogMessage.connect(self.onNewLogMessage)
         logging.getLogger("muddle").addHandler(self.loghandler)
 
-        # set up proxymodel for moodle treeview
+        # moodle tab
+        ## set up proxymodel for moodle treeview
         self.moodleTreeModel = MoodleTreeModel()
         self.moodleTreeModel.dataChanged.connect(self.onMoodleTreeModelDataChanged)
 
@@ -295,20 +329,33 @@ class MuddleWindow(QMainWindow):
         moodleTreeView.setModel(self.filterModel)
         moodleTreeView.setSortingEnabled(True)
         moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
-        # TODO: change with minimumSize (?)
+        ## TODO: change with minimumSize (?)
         moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         moodleTreeView.doubleClicked.connect(self.onMoodleTreeViewDoubleClicked)
 
-        # refresh moodle treeview
+        ## refresh moodle treeview
         refreshBtn = self.findChild(QToolButton, "refreshBtn")
-        refreshBtn.clicked.connect(lambda b: self.moodleTreeModel.refresh(instance_url, token))
+        refreshBtn.clicked.connect(self.onRefreshBtnClicked)
 
-        # searchbar
+        if not self.instanceUrl:
+            refreshBtn.setEnabled(False)
+            log.warning("no server url configured!")
+
+        if not self.token:
+            refreshBtn.setEnabled(False)
+            log.warning("no server token configured!")
+
+
+        ## searchbar
         searchBar = self.findChild(QLineEdit, "searchBar")
         searchBar.textChanged.connect(self.onSearchBarTextChanged)
         searchBar.textEdited.connect(self.onSearchBarTextChanged)
 
-        # local filesystem view
+        ## select path
+        selectPathBtn = self.findChild(QToolButton, "selectPathBtn")
+        selectPathBtn.clicked.connect(self.onSelectPathBtnClicked)
+
+        # local filesystem tab
         self.downloadPath = QDir.homePath()
 
         self.fileSystemModel = QFileSystemModel()
@@ -323,11 +370,14 @@ class MuddleWindow(QMainWindow):
         downloadPathEdit.setText(self.downloadPath)
         downloadPathEdit.editingFinished.connect(self.onDownloadPathEditEditingFinished)
 
-        # select path
-        selectPathBtn = self.findChild(QToolButton, "selectPathBtn")
-        selectPathBtn.clicked.connect(self.onSelectPathBtnClicked)
-
         self.show()
+
+    @pyqtSlot()
+    def onRequestTokenBtnClicked(self):
+        # TODO: open login dialog
+        # TODO: test and maybe check if there is already a token
+        # req = moodle.request_token(self.instance_url, user, password)
+        pass
 
     @pyqtSlot(str)
     def onSearchBarTextChanged(self, text):
@@ -365,6 +415,14 @@ class MuddleWindow(QMainWindow):
             return
 
         self.updateDownloadPath(path)
+
+    @pyqtSlot()
+    def onRefreshBtnClicked(self):
+        if self.instanceUrl and self.token:
+            self.moodleTreeModel.refresh(self.instanceUrl, self.token)
+        else:
+            # TODO: implement error dialog
+            pass
 
     @pyqtSlot()
     def updateDownloadPath(self, newpath):
@@ -411,7 +469,7 @@ class MuddleWindow(QMainWindow):
                 item.child(i).setCheckState(item.checkState())
 
 
-def start(instance_url, token):
+def start(config):
     app = QApplication(sys.argv)
-    ex = MuddleWindow(instance_url, token)
+    ex = MuddleWindow(config)
     sys.exit(app.exec_())
