@@ -41,7 +41,6 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QPushButton,
-    QToolButton,
     QLineEdit,
     QProgressBar,
     QTabWidget,
@@ -334,7 +333,7 @@ class MuddleWindow(QMainWindow):
         moodleTreeView.doubleClicked.connect(self.onMoodleTreeViewDoubleClicked)
 
         ## refresh moodle treeview
-        refreshBtn = self.findChild(QToolButton, "refreshBtn")
+        refreshBtn = self.findChild(QPushButton, "refreshBtn")
         refreshBtn.clicked.connect(self.onRefreshBtnClicked)
 
         if not self.instanceUrl:
@@ -352,7 +351,7 @@ class MuddleWindow(QMainWindow):
         searchBar.textEdited.connect(self.onSearchBarTextChanged)
 
         ## select path
-        selectPathBtn = self.findChild(QToolButton, "selectPathBtn")
+        selectPathBtn = self.findChild(QPushButton, "selectPathBtn")
         selectPathBtn.clicked.connect(self.onSelectPathBtnClicked)
 
         # local filesystem tab
