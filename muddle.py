@@ -72,8 +72,14 @@ if platform.system() == "Linux":
     elif pathlib.Path("~/.cache").expanduser().exists():
         default_log_dir = pathlib.Path("~/.cache/muddle/").expanduser()
 
+elif platform.system() == "Windows":
+    if os.environ.get("APPDATA"):
+        default_config_dir = pathlib.Path(os.environ["APPDATA"]).joinpath("muddle/")
 
-# TODO: implement for other platforms
+    if os.environ.get("LOCALAPPDATA"):
+        default_log_dir = pathlib.Path(os.environ["LOCALAPPDATA"]).joinpath("muddle")
+
+# TODO: implement for MacOS
 
 default_config_file = default_config_dir.joinpath("muddle.ini")
 default_log_file = default_log_dir.joinpath("muddle.log")
