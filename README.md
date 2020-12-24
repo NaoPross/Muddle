@@ -22,7 +22,7 @@ $ source ./venv/bin/activate
 
 ### Windows
 
-1. Install (Python)[python.org], and in the installer enable **Add Python to the path**.
+1. Install [Python](https://www.python.org), and in the installer enable **Add Python to the path**.
 2. Navigate to the project directory using Explorer, then Shift + Right Click and *Open Powershell Window here*
 3. In the Powershell you can now create a VirtualEnv by typing
 ```powershell
