@@ -273,7 +273,7 @@ class QLogHandler(QObject, logging.Handler):
 class MuddleWindow(QMainWindow):
     def __init__(self, config):
         super(MuddleWindow, self).__init__()
-        uic.loadUi("muddle.ui", self)
+        uic.loadUi("muddle/muddle.ui", self)
         self.setCentralWidget(self.findChild(QTabWidget, "Muddle"))
 
         self.instanceUrl = config["server"]["url"] if config.has_option("server", "url") else None
