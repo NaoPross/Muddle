@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "muddle"
+version = "0.1.0"
+description = "A desktop client for Moodle"
+authors = ["Nao Pross <np@0hm.ch>"]
+license = "GPLv3"
+
+[tool.poetry.dependencies]
+python = "^3.5"
+colorlog = "^4.7.2"
+requests = "^2.25.1"
+PyQt5 = "^5.15.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
