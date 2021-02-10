@@ -354,6 +354,12 @@ class MuddleWindow(QMainWindow):
         selectPathBtn = self.findChild(QPushButton, "selectPathBtn")
         selectPathBtn.clicked.connect(self.onSelectPathBtnClicked)
 
+        ## progressbar
+        self.progressBar = self.findChild(QProgressBar, "downloadProgressBar")
+
+        # self.moodleTreeModel.worker.loaded
+        # self.moodleTreeModel.worker.loadedItem.connect(lambda t, item:)
+
         # local filesystem tab
         self.downloadPath = QDir.homePath()
 
@@ -370,6 +376,21 @@ class MuddleWindow(QMainWindow):
         downloadPathEdit.editingFinished.connect(self.onDownloadPathEditEditingFinished)
 
         self.show()
+
+    @pyqtSlot(int)
+    def setProgressBarTasks(self, nrTasks):
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(tasks)
+        self.progressBar.reset()
+
+    @pyqtSlot()
+    def advanceProgressBar(self):
+        currentValue = self.progressBar.value()
+        self.progressBar.setValue(currentValue + 1);
+
+    @pyqtSlot(int)
+    def setProgressBarValue(self, value):
+        self.progressBar.setValue(value)
 
     @pyqtSlot()
     def onRequestTokenBtnClicked(self):
