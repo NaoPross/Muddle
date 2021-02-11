@@ -13,6 +13,7 @@ import json
 
 import moodle
 import gui
+import paths
 
 
 MUDDLE_VERSION = "0.1.0"
@@ -53,43 +54,12 @@ if args.verbose:
 
 # C O N F I G S  A N D  L O G S
 
-# default location for configuration and log files
-
-default_config_dir = pathlib.Path.cwd()
-default_log_dir = pathlib.Path.cwd()
-
-if platform.system() == "Linux":
-    # compliant with XDG
-    if os.environ.get("XDG_CONFIG_HOME"):
-        default_config_dir = pathlib.PurePath(os.environ["XDG_CONFIG_HOME"]).joinpath("muddle/")
-
-    elif pathlib.Path("~/.config").expanduser().exists():
-        default_config_dir = pathlib.Path("~/.config/muddle/").expanduser()
-
-    if os.environ.get("XDG_CACHE_HOME"):
-        default_log_dir = pathlib.Path(os.environ["XDG_CACHE_HOME"]).joinpath("muddle/")
-
-    elif pathlib.Path("~/.cache").expanduser().exists():
-        default_log_dir = pathlib.Path("~/.cache/muddle/").expanduser()
-
-elif platform.system() == "Windows":
-    if os.environ.get("APPDATA"):
-        default_config_dir = pathlib.Path(os.environ["APPDATA"]).joinpath("muddle/")
-
-    if os.environ.get("LOCALAPPDATA"):
-        default_log_dir = pathlib.Path(os.environ["LOCALAPPDATA"]).joinpath("muddle")
-
-# TODO: implement for MacOS
-
-default_config_file = default_config_dir.joinpath("muddle.ini")
-default_log_file = default_log_dir.joinpath("muddle.log")
-
-log.debug("set default config path {}".format(default_config_file))
-log.debug("set default log path {}".format(default_log_file))
+log.debug("set default config path {}".format(paths.default_config_file))
+log.debug("set default log path {}".format(paths.default_log_file))
 
 # user parameters
 
-log_file = pathlib.Path(default_log_file)
+log_file = pathlib.Path(paths.default_log_file)
 if args.logfile:
     if os.path.exists(args.logfile):
         log_file = pathlib.Path(args.logfile)
@@ -105,7 +75,7 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setFormatter(logformatter)
 file_handler.setLevel(logging.INFO)
 
-config_file = pathlib.Path(default_config_file)
+config_file = pathlib.Path(paths.default_config_file)
 if args.config:
     if os.path.isfile(args.config):
         config_file = pathlib.Path(args.config)
