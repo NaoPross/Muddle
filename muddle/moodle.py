@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 import requests
 import logging
+import dataclasses
+
+from typing import List
 
 log = logging.getLogger("muddle.moodle")
 
-#
-# magic moodle api wrapper
-#
 
-
-def request_token(url, user, password):
+def get_token(url, user, password):
     token_url = f"{url}/login/token.php"
     data = {
         "username": user,
@@ -20,32 +19,129 @@ def request_token(url, user, password):
     return requests.post(token_url, data=data)
 
 
-def api_call(url, token, function, **kwargs):
-    api_url = f"{url}/webservice/rest/server.php?moodlewsrestformat=json"
-    data = {"wstoken": token, "wsfunction": function}
-    for k, v in kwargs.items():
-        data[str(k)] = v
-
-    log.debug(f"calling api with POST to {api_url} with DATA {data}")
-    try:
-        req = requests.post(api_url, data=data)
-        req.raise_for_status()
-        return req
-    except requests.HTTPError:
-        log.warn(f"Error code returned by HTTP(s) request")
-        return req
-    except (requests.ConnectionError, requests.Timeout, requests.ReadTimeout) as e:
-        log.error(f"Failed to connect for POST request:\n{str(e)}")
-        return None
-
-
 class RestApi:
-    def __init__(self, instance_url, token):
+    """
+    Magic REST API wrapper (ab)using lambdas
+    """
+    def __init__(self, instance_url, token=None):
         self._url = instance_url
-        self._token = token
+        if token:
+            self._token = token
 
     def __getattr__(self, key):
-        return lambda **kwargs: api_call(self._url, self._token, str(key), **kwargs)
+        return lambda **kwargs: RestApi._call(self._url, self._token, str(key), **kwargs)
+
+    def _call(self, function, **kwargs):
+        return RestApi._call(self._url, self._token, kwargs)
+
+    @staticmethod
+    def _call(url, token, function, **kwargs):
+        api_url = f"{url}/webservice/rest/server.php?moodlewsrestformat=json"
+        data = {"wstoken": token, "wsfunction": function}
+        for k, v in kwargs.items():
+            data[str(k)] = v
+
+        log.debug(f"calling api with POST to {api_url} with DATA {data}")
+        try:
+            req = requests.post(api_url, data=data)
+            req.raise_for_status()
+        except requests.HTTPError:
+            log.warn("Error code returned by HTTP(s) request")
+        except (requests.ConnectionError, requests.Timeout, requests.ReadTimeout) as e:
+            log.error(f"Failed to connect for POST request:\n{str(e)}")
+        finally:
+            return req
+
+
+class MoodleInstance:
+    """
+    A more frendly API that wraps around the raw RestApi
+    """
+    def __init__(self, url, token):
+        self.api = RestApi(url, token)
+
+    def get_userid(self):
+        req = self.api.core_webservice_get_site_info()
+        return req.json()["userid"]
+
+    def get_enrolled_courses(self):
+        req = self.api.core_enrol_get_users_courses(userid=self.get_userid())
+        for c in req.json():
+            yield Course._fromdict(c)
+
+
+# A bare minimum impl of Moodle SCHEMA
+# Beware that lots of parameters have been omitted
+
+class SchemaObj:
+    @classmethod
+    def _fromdict(cls, d):
+        """
+        Creates a schema object from a dictionary, if the dictionary contains
+        keys that are not present in the schema object they will be ignored
+        """
+        if cls is SchemaObj:
+            raise TypeError("Must be used in a subclass")
+
+        fields = [f.name for f in dataclasses.fields(cls)]
+        filtered = {k: v for k, v in d.items() if k in fields}
+
+        return cls(**filtered)
+
+
+@dataclasses.dataclass
+class Course(SchemaObj):
+    """
+    A course, pretty self explanatory
+    https://www.examulator.com/er/output/tables/course.html
+    """
+    id: int
+    shortname: str
+    fullname: str
+    summary: str
+    startdate: int
+    enddate: int
+
+    def get_sections(self, api):
+        req = api.core_course_get_contents(courseid=self.id)
+        for sec in req.json():
+            # rest api response does not contain course id
+            sec["course"] = self.id
+            yield Section._fromdict(sec)
+
+
+@dataclasses.dataclass
+class Section(SchemaObj):
+    """
+    Sections of a course
+    https://www.examulator.com/er/output/tables/course_sections.html
+    """
+    id: int
+    course: int
+    section: int
+    name: str
+    summary: str
+    visible: bool
+    modules: List
+
+
+@dataclasses.dataclass
+class Module(SchemaObj):
+    """
+    Modules of a Course, they are grouped in sections
+    https://www.examulator.com/er/output/tables/course_modules.html
+    """
+    id: int
+    course: int
+    module: int
+    section: int
+
+
+@dataclasses.dataclass
+class Folder(SchemaObj):
+    """
+    Resource type that holds files
+    """
 
 
 class ApiHelper:
