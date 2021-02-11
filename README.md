@@ -1,69 +1,59 @@
 # Muddle (Work in progress!)
 A desktop Moodle client, because the web interface is painfully slow if you quickly need to grab a file.
 
-![](./muddle.png)
+<table><tr>
+	<td><img src="doc/muddle.png"/></td>
+	<td><img src="doc/muddle_windows.png"/></td>
+</tr></table>
 
 ## Configuration
 On linux, copy `muddle.ini.sample` to `~/.config/muddle/muddle.ini` and add a token.
 On other platforms there is no specific path implemented yet, so it will look for a file `muddle.ini` in the same folder as the executable.
 
 ## Development
-This is written in Python 3 + PyQt. VirtualEnv is probably the most comfortable way to work.
+This is written in Python 3 + PyQt and the dependencies are managed with 
+[Poetry](https://python-poetry.org/docs/#installation).
 The code is a bit garbage, as I hacked it toghether in one morning, though I've tried to clean it up a bit.
 
 ### Linux / MacOS
-If you don't know how to set up a venv, type in you terminal (while in the project directory):
+Check that you have Python >= 3.5, install 
+[Poetry](https://python-poetry.org/docs/#installation)
+and then:
 ```bash
-$ python3 -m venv venv
-$ source ./venv/bin/activate
-(venv) $ pip3 install -r requirements.txt
-(venv) $ ./muddle -v --gui
+$ git clone https://github.com/NaoPross/Muddle.git
+$ cd Muddle
+$ poetry install
+$ poetry run python muddle --gui
 ```
 
 ### Windows
-
 1. Install [Python](https://www.python.org), and in the installer enable **Add Python to the path**.
-2. Navigate to the project directory using Explorer, then Shift + Right Click and *Open Powershell Window here*
-3. In the Powershell you can now create a VirtualEnv by typing
+2. Clone this repository
+3. Navigate to the project directory using Explorer, then Shift + Right Click and *Open Powershell Window here*
+4. In the Powershell you can now start working with
 ```powershell
-PS> python -m venv venv
-PS> .\venv\Scripts\activate
-(venv) PS> pip3 install -r requirements.txt
-(venv) PS> python muddle.py -v --gui
-```
-
-#### VirtualEnv says `running scripts is diabled on this System`
-If when activating the virtualenv using powershell you get something like this
-```
-.\venv\Scripts\activate : File C:\Users\NaoPross\Documents\Code\Muddle\venv\Scripts\Activate.ps1 cannot be loaded
-because running scripts is disabled on this system. For more information, see about_Execution_Policies at
-https:/go.microsoft.com/fwlink/?LinkID=135170.
-At line:1 char:1
-+ .\venv\Scripts\activate
-+ ~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : SecurityError: (:) [], PSSecurityException
-    + FullyQualifiedErrorId : UnauthorizedAccess
-```
-You need to change your ExecutionPolicy, to do that you need to type the following to allow for scripts to be executed
-```powershell
-PS> Get-ExecutionPolicy -List                            # see the current settings
-PS> Set-ExecutionPolicy RemoteSigned -Scope CurrentUser  # allow your user to run script
+PS> poetry install
+PS> poetry run python muddle --gui
 ```
 
 ### Coding style
-
-Use PEP8 except where Qt bindings are used (`gui.py`). To check use
+Use pycodestyle (PEP8) except where Qt bindings are used (`gui.py`). To check use
 ```
-$ pep8 --show-source --ignore=E501 moodle.py muddle.py <more files...>
+$ poetry run pycodestyle --show-source --ignore=E501 muddle/__main__.py muddle/moodle.py
 ```
 
 ### Compilation / Release
+<!-- TODO: fix this, because it doesn't work (poetry bug, will be fixed by poetry bundle) -->
 To create an executable you need PyInstaller, you can get it with
+```bash
+poetry shell
 ```
-$ pip3 install pyinstaller
+On Linux / MacOS:
+```bash
+(poetry) $ pyinstaller --onefile --name muddle --specpath build --add-data "muddle/muddle.ui:muddle/muddle.ui" muddle
 ```
-And then run
-```
-$ pyinstaller --onefile muddle
+On Windows (the difference is `;`):
+```powershell
+(poetry) > pyinstaller --onefile --name muddle --specpath build --add-data "muddle/muddle.ui;muddle/muddle.ui" muddle
 ```
 The computer will think for a while, and then once its done there will be a single executable `dist/muddle`.
