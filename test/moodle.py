@@ -16,10 +16,21 @@ config.read(config_file)
 
 
 class TestMoodleInstance:
-	server = moodle.MoodleInstance(config["server"]["url"], config["server"]["token"])
+    server = moodle.MoodleInstance(config["server"]["url"], config["server"]["token"])
 
-	def test_get_userid(self):
-		assert self.server.get_userid() != None
+    def test_get_userid(self):
+        assert self.server.get_userid() != None
 
-	def test_get_enrolled_courses(self):
-		assert type(next(self.server.get_enrolled_courses())) == moodle.Course
+    def test_get_enrolled_courses(self):
+        assert type(next(self.server.get_enrolled_courses())) == moodle.Course
+
+
+def test_moodle_api():
+    server = moodle.MoodleInstance(config["server"]["url"], config["server"]["token"])
+
+    for course in server.get_enrolled_courses():
+        print(course.shortname)
+        for section in course.get_sections(server.api):
+            print(section.name)
+            for module in section.get_modules():
+                print(module.name)

@@ -104,10 +104,10 @@ class Course(SchemaObj):
 
     def get_sections(self, api):
         req = api.core_course_get_contents(courseid=self.id)
-        for sec in req.json():
+        for s in req.json():
             # rest api response does not contain course id
-            sec["course"] = self.id
-            yield Section._fromdict(sec)
+            s["course"] = self.id
+            yield Section._fromdict(s)
 
 
 @dataclasses.dataclass
@@ -122,7 +122,12 @@ class Section(SchemaObj):
     name: str
     summary: str
     visible: bool
+
     modules: List
+
+    def get_modules(self):
+        for m in self.modules:
+            yield Module._fromdict(m)
 
 
 @dataclasses.dataclass
@@ -132,16 +137,23 @@ class Module(SchemaObj):
     https://www.examulator.com/er/output/tables/course_modules.html
     """
     id: int
-    course: int
-    module: int
-    section: int
+    name: str
+
+
+@dataclasses.dataclass
+class File(SchemaObj):
+    filename: str
+    fileurl: str
 
 
 @dataclasses.dataclass
 class Folder(SchemaObj):
-    """
-    Resource type that holds files
-    """
+    pass
+
+
+@dataclasses.dataclass
+class ExternalLink(SchemaObj):
+    pass
 
 
 class ApiHelper:
