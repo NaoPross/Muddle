@@ -12,45 +12,51 @@ import html
 import logging
 import tempfile
 
-from PyQt5 import uic
-from PyQt5.QtGui import QFont, QIcon, QStandardItemModel, QStandardItem
-from PyQt5.Qt import QStyle
-
-from PyQt5.QtCore import (
-    Qt,
-    QDir,
-    QThread,
-    QSignalBlocker,
-    pyqtSlot,
-    pyqtSignal,
-    QObject,
-    QRegularExpression,
-    QModelIndex,
-    QSortFilterProxyModel,
+from PyQt6 import uic
+from PyQt6.QtGui import (
+    QFileSystemModel,
+    QFont,
+    QIcon,
+    QStandardItem,
+    QStandardItemModel,
 )
 
-from PyQt5.QtWidgets import (
+
+from PyQt6.QtCore import (
+    QDir,
+    QModelIndex,
+    QObject,
+    QRegularExpression,
+    QSignalBlocker,
+    QSortFilterProxyModel,
+    QThread,
+    Qt,
+    pyqtSignal,
+    pyqtSlot,
+)
+
+from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLineEdit,
     QMainWindow,
-    QWidget,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QStyle,
+    QTabWidget,
     QTreeView,
     QTreeWidget,
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
-    QHeaderView,
-    QGridLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLineEdit,
-    QProgressBar,
-    QTabWidget,
-    QPlainTextEdit,
-    QFileSystemModel,
-    QFileDialog,
-    QCheckBox,
+    QWidget,
 )
 
-import moodle
+from . import moodle
 
 log = logging.getLogger("muddle.gui")
 
@@ -327,9 +333,10 @@ class MuddleWindow(QMainWindow):
         moodleTreeView = self.findChild(QTreeView, "moodleTree")
         moodleTreeView.setModel(self.filterModel)
         moodleTreeView.setSortingEnabled(True)
-        moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
+        # FIXME: Broken by upgrade to PyQt6
+        # moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
         ## TODO: change with minimumSize (?)
-        moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        # moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         moodleTreeView.doubleClicked.connect(self.onMoodleTreeViewDoubleClicked)
 
         ## refresh moodle treeview
@@ -369,7 +376,8 @@ class MuddleWindow(QMainWindow):
         localTreeView = self.findChild(QTreeView, "localTab")
         localTreeView.setModel(self.fileSystemModel)
         localTreeView.setRootIndex(self.fileSystemModel.index(QDir.homePath()))
-        localTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        # FIXME: Broken by upgrade to PyQt6
+        # localTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
         downloadPathEdit.setText(self.downloadPath)
@@ -497,4 +505,4 @@ class MuddleWindow(QMainWindow):
 def start(config):
     app = QApplication(sys.argv)
     ex = MuddleWindow(config)
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

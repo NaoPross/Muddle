@@ -11,9 +11,9 @@ import platform
 import pathlib
 import json
 
-import moodle
-import gui
-import paths
+from . import moodle
+from . import gui
+from . import paths
 
 
 MUDDLE_VERSION = "0.1.0"

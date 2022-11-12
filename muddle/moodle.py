@@ -15,7 +15,7 @@ def get_token(url, user, password):
         "password": password,
         "service": "moodle_mobile_app"
     }
-    log.debug(f"requesting token with POST to {api_url} with DATA {data}")
+    log.debug(f"requesting token with POST to {url} with DATA {data}")
     return requests.post(token_url, data=data)
 
 
