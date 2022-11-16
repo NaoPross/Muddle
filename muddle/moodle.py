@@ -74,7 +74,28 @@ class MoodleInstance:
             yield Course._fromdict(c)
 
 
+class ApiHelper:
+    def __init__(self, api):
+        self.api = api
+
+    def get_userid(self):
+        req = self.api.core_webservice_get_site_info()
+        if req:
+            return req.json()["userid"]
+        else:
+            return None
+
+    def get_file(self, url, local_path):
+        with requests.post(url, data={"token": self.api._token}, stream=True) as r:
+            r.raise_for_status()
+            with open(local_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+
 # A bare minimum impl of Moodle SCHEMA
+# This is an experiment and not currently in use!
 # Beware that lots of parameters have been omitted
 
 class SchemaObj:
@@ -158,23 +179,3 @@ class Folder(SchemaObj):
 @dataclasses.dataclass
 class ExternalLink(SchemaObj):
     pass
-
-
-class ApiHelper:
-    def __init__(self, api):
-        self.api = api
-
-    def get_userid(self):
-        req = self.api.core_webservice_get_site_info()
-        if req:
-            return req.json()["userid"]
-        else:
-            return None
-
-    def get_file(self, url, local_path):
-        with requests.post(url, data={"token": self.api._token}, stream=True) as r:
-            r.raise_for_status()
-            with open(local_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
