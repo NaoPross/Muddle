@@ -59,10 +59,14 @@ class MoodleInstance:
     """
     def __init__(self, url, token):
         self.api = RestApi(url, token)
+        self.userid = None
 
     def get_userid(self):
-        req = self.api.core_webservice_get_site_info()
-        return req.json()["userid"]
+        if self.userid is None:
+            req = self.api.core_webservice_get_site_info()
+            self.userid = req.json()["userid"]
+
+        return self.userid
 
     def get_enrolled_courses(self):
         req = self.api.core_enrol_get_users_courses(userid=self.get_userid())

@@ -102,7 +102,7 @@ config["runtime_data"]["config_path"] = str(config_file)
 
 if args.version:
     print(f"""Version {MUDDLE_VERSION}
-Muddle Copyright (C) 2020-2021 Nao Pross <np@0hm.ch>
+Muddle Copyright (C) 2020-2023 Nao Pross <np@0hm.ch>
 
 This program comes with ABSOLUTELY NO WARRANTY; This is free software, and you
 are welcome to redistribute it under certain conditions; see LICENSE.txt for

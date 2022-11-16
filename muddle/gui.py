@@ -1,6 +1,10 @@
 #
 # This document *and this document only* uses the Qt naming convention instead
-# of PEP because the PyQt5 bindings do not have pythonic names
+# of PEP because the PyQt6 bindings do not have pythonic names.
+#
+# See the link below for the official documentation of PyQt6:
+#
+#   https://www.riverbankcomputing.com/static/Docs/PyQt6/index.html
 #
 import os
 import platform
@@ -93,11 +97,11 @@ class MoodleItem(QStandardItem):
 
         # set icon
         icons = {
-            MoodleItem.Type.COURSE   : QStyle.SP_DriveNetIcon,
-            MoodleItem.Type.FOLDER   : QStyle.SP_DirIcon,
-            MoodleItem.Type.RESOURCE : QStyle.SP_DirLinkIcon,
-            MoodleItem.Type.FILE     : QStyle.SP_FileIcon,
-            MoodleItem.Type.URL      : QStyle.SP_FileLinkIcon,
+            MoodleItem.Type.COURSE   : QStyle.StandardPixmap.SP_DriveNetIcon,
+            MoodleItem.Type.FOLDER   : QStyle.StandardPixmap.SP_DirIcon,
+            MoodleItem.Type.RESOURCE : QStyle.StandardPixmap.SP_DirLinkIcon,
+            MoodleItem.Type.FILE     : QStyle.StandardPixmap.SP_FileIcon,
+            MoodleItem.Type.URL      : QStyle.StandardPixmap.SP_FileLinkIcon,
         }
 
         if self.metadata.type in icons.keys():
@@ -111,7 +115,7 @@ class MoodleItem(QStandardItem):
             # the tri-state behavior is implemented below in
             # MuddleWindow.onMoodleTreeModelDataChanged()
             self.setCheckable(True)
-            self.setCheckState(Qt.Unchecked)
+            self.setCheckState(Qt.CheckState.Unchecked)
 
         self.setEditable(False)
         self.setText(html.unescape(self.metadata.title))
@@ -333,10 +337,9 @@ class MuddleWindow(QMainWindow):
         moodleTreeView = self.findChild(QTreeView, "moodleTree")
         moodleTreeView.setModel(self.filterModel)
         moodleTreeView.setSortingEnabled(True)
-        # FIXME: Broken by upgrade to PyQt6
-        # moodleTreeView.sortByColumn(0, Qt.AscendingOrder)
+        moodleTreeView.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         ## TODO: change with minimumSize (?)
-        # moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        moodleTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         moodleTreeView.doubleClicked.connect(self.onMoodleTreeViewDoubleClicked)
 
         ## refresh moodle treeview
@@ -376,8 +379,7 @@ class MuddleWindow(QMainWindow):
         localTreeView = self.findChild(QTreeView, "localTab")
         localTreeView.setModel(self.fileSystemModel)
         localTreeView.setRootIndex(self.fileSystemModel.index(QDir.homePath()))
-        # FIXME: Broken by upgrade to PyQt6
-        # localTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        localTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
 
         downloadPathEdit = self.findChild(QLineEdit, "downloadPathEdit")
         downloadPathEdit.setText(self.downloadPath)
@@ -442,7 +444,7 @@ class MuddleWindow(QMainWindow):
     def onSelectPathBtnClicked(self):
         path = QFileDialog.getExistingDirectory(
                 self, "Select Download Directory",
-                self.downloadPath, QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+                self.downloadPath, QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks)
 
         if not path:
             return
