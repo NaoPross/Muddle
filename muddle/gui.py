@@ -491,7 +491,7 @@ class MuddleWindow(QMainWindow):
                 subprocess.Popen(('xdg-open', filepath))
 
     # this is here to emulate the behavior of setAutoTristate which does not
-    # work because of a Qt Bug
+    # work because of a Qt Bug, see https://bugreports.qt.io/browse/QTBUG-59173
     @pyqtSlot(QModelIndex, QModelIndex)
     def onMoodleTreeModelDataChanged(self, topLeft, bottomRight):
         # TODO: this can probably be moved in Item.setData() by creating AutoTriStateRole
