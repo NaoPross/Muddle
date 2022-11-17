@@ -1,10 +1,11 @@
 # Muddle (Work in progress!)
 A desktop Moodle client, because the web interface is painfully slow if you quickly need to grab a file.
 
-<table><tr>
-	<td><img src="doc/muddle.png"/></td>
-	<td><img src="doc/muddle_windows.png"/></td>
-</tr></table>
+<div>
+<img style="height: 350px;" src="doc/muddle_linux.png"/>
+<img style="height: 350px;" src="doc/muddle_macos.png"/>
+<img style="height: 350px;" src="doc/muddle_windows.png"/>
+</div>
 
 ## Configuration
 On Linux, copy `doc/muddle.ini.example` to `~/.config/muddle/muddle.ini` and add a token; on Windows the file should be put in `%APPDATA%\muddle`; and on MacOS in `~/Library/ch.0hm.muddle`.
