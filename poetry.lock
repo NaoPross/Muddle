@@ -173,6 +173,27 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "pyqt6-webengine"
+version = "6.4.0"
+description = "Python bindings for the Qt WebEngine framework"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+PyQt6 = ">=6.2.0"
+PyQt6-sip = ">=13.4,<14"
+PyQt6-WebEngine-Qt6 = ">=6.4.0"
+
+[[package]]
+name = "pyqt6-webengine-qt6"
+version = "6.4.0"
+description = "The subset of a Qt installation needed by PyQt6-WebEngine."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pytest"
 version = "6.2.5"
 description = "pytest: simple powerful testing with Python"
@@ -256,7 +277,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f0769984a7229dfc48d2ed7e72601ec4134370f2b0812ce289c3b57a5d310535"
+content-hash = "f6348c72a45eadb6fb25490aeb4963f1e7a66eb056eb23c952ebe3addd81897b"
 
 [metadata.files]
 atomicwrites = [
@@ -343,6 +364,18 @@ pyqt6-sip = [
     {file = "PyQt6_sip-13.4.0-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:fd2df2a9479b8ac858117bd55dc0ec0bd1ce6c8f3486b0cc5e860c0540a8bba0"},
     {file = "PyQt6_sip-13.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:3486914137f5336cff6e10a5e9d52c1e60ff883473938b45f267f794daeacb2f"},
     {file = "PyQt6_sip-13.4.0.tar.gz", hash = "sha256:6d87a3ee5872d7511b76957d68a32109352caf3b7a42a01d9ee20032b350d979"},
+]
+pyqt6-webengine = [
+    {file = "PyQt6_WebEngine-6.4.0-cp37-abi3-macosx_10_14_universal2.whl", hash = "sha256:9658919bc1c5279a6fae9e6990448dfe483e136e957e6fb14e8f6265f4e9d1da"},
+    {file = "PyQt6_WebEngine-6.4.0-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:3f17c7b41cceaf7bdeec69121b4ff211b43f62e4a7e89c7143124a4eb3fc9da2"},
+    {file = "PyQt6_WebEngine-6.4.0-cp37-abi3-win_amd64.whl", hash = "sha256:7f6cde52b7b8c00ef2a1522ad92cde66f2bd3a3066646efe4ef96a4907b1b1cd"},
+    {file = "PyQt6_WebEngine-6.4.0.tar.gz", hash = "sha256:4c71c130860abcd11e04cafb22e33983fa9a3aee8323c51909b15a1701828e21"},
+]
+pyqt6-webengine-qt6 = [
+    {file = "PyQt6_WebEngine_Qt6-6.4.0-py3-none-macosx_10_14_x86_64.whl", hash = "sha256:f13b3582c7f170017ecd52ec4c2e735c859316f05820e1bb4a2910c530611af4"},
+    {file = "PyQt6_WebEngine_Qt6-6.4.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:572e7fee6de616191b98dd974ced8bd732e86dc1856c1ada7ad734402e37285c"},
+    {file = "PyQt6_WebEngine_Qt6-6.4.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:971aedd051c77c17c59e724692636a4a0883c70dff3dbd172ae7cfb2fe7ddcc4"},
+    {file = "PyQt6_WebEngine_Qt6-6.4.0-py3-none-win_amd64.whl", hash = "sha256:689127e483ab76744477762ab936de9541e7fc368ab4f4ee463a9099bf8bc5be"},
 ]
 pytest = [
     {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},

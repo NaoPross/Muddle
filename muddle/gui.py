@@ -15,8 +15,12 @@ import enum
 import html
 import logging
 import tempfile
+import code
+
+from http.cookiejar import Cookie
 
 from PyQt6 import uic
+
 from PyQt6.QtGui import (
     QFileSystemModel,
     QFont,
@@ -24,7 +28,6 @@ from PyQt6.QtGui import (
     QStandardItem,
     QStandardItemModel,
 )
-
 
 from PyQt6.QtCore import (
     QDir,
@@ -35,6 +38,7 @@ from PyQt6.QtCore import (
     QSortFilterProxyModel,
     QThread,
     Qt,
+    QUrl,
     pyqtSignal,
     pyqtSlot,
 )
@@ -42,6 +46,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QDialog,
     QFileDialog,
     QGridLayout,
     QHBoxLayout,
@@ -60,7 +65,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from PyQt6.QtWebEngineCore import (QWebEnginePage, QWebEngineProfile)
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtNetwork import QNetworkCookie
+
 from . import moodle
+
 
 log = logging.getLogger("muddle.gui")
 
@@ -171,6 +181,40 @@ class MoodleFetcher(QThread):
             return module["contents"]
         else:
             return []
+
+
+class SwitchLoginDialog(QDialog):
+    def __init__(self, parent, url):
+        super().__init__(parent)
+        self.setWindowTitle("SWICH AAI Login")
+
+        self.webview = QWebEngineView(self)
+        self.profile = QWebEngineProfile(self.webview)
+        self.cookies = []
+
+        self.profile.cookieStore().cookieAdded.connect(self.onCookieAdded)
+
+        self.webview.setPage(QWebEnginePage(self.profile, self.webview))
+        self.webview.load(QUrl(url))
+        self.webview.show()
+
+        layout = QGridLayout()
+        layout.addWidget(self.webview)
+        self.setLayout(layout)
+        self.setMinimumSize(800, 600)
+
+    @pyqtSlot(QNetworkCookie)
+    def onCookieAdded(self, cookie):
+        for c in self.cookies:
+            if c.hasSameIdentifier(cookie):
+                return
+        self.cookies.append(QNetworkCookie(cookie))
+
+    def pyCookies(self):
+        """ Converts the QNetworkCookies into http.cookiejar cookies that can
+        be used in requests """
+        for c in self.cookies:
+            raise NotImplemented
 
 
 class MoodleTreeFilterModel(QSortFilterProxyModel):
@@ -316,7 +360,10 @@ class MuddleWindow(QMainWindow):
         if config.has_option("muddle", "default_download_dir"):
             defaultDownloadPathEdit.setText(config["muddle"]["default_download_dir"])
 
-
+        ## switch aai login
+        self.switchLoginBtn = self.findChild(QPushButton, "switchLoginBtn")
+        self.switchLoginBtn.clicked.connect(self.onSwitchLoginBtnClicked)
+        
         # log tab
         ## setup logging
         self.loghandler = QLogHandler(self)
@@ -413,7 +460,24 @@ class MuddleWindow(QMainWindow):
         # TODO: open login dialog
         # TODO: test and maybe check if there is already a token
         # req = moodle.request_token(self.instance_url, user, password)
+        log.error("Token request is broken")
         pass
+
+    @pyqtSlot()
+    def onSwitchLoginBtnClicked(self):
+        # TODO: implement SWITCH login
+        # Resources:
+        #   https://www.switch.ch/aai/demo/medium/
+        #   https://iam.harvard.edu/resources/saml-shibboleth-integration
+        #   https://github.com/Bownairo/shibbolethpython
+        #   https://stackoverflow.com/questions/16512965/logging-into-saml-shibboleth-authenticated-server-using-python/58598520#58598520
+        log.error("SWITCH login is not implemented yet")
+
+        dialog = SwitchLoginDialog(self, self.instanceUrl)
+        if dialog.exec():
+            pass
+
+        code.interact(local=dict(globals(), **locals()))
 
     @pyqtSlot(str)
     def onSearchBarTextChanged(self, text):

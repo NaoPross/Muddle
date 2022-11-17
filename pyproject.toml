@@ -10,6 +10,7 @@ python = "^3.7"
 colorlog = "^4.7.2"
 requests = "^2.25.1"
 pyqt6 = "^6.4.0"
+pyqt6-webengine = "^6.4.0"
 
 [tool.poetry.dev-dependencies]
 # pyinstaller = "^4.2"
