@@ -324,6 +324,12 @@ class MuddleWindow(QMainWindow):
         self.loghandler.newLogMessage.connect(self.onNewLogMessage)
         logging.getLogger("muddle").addHandler(self.loghandler)
 
+        ## Set font to be monospaced
+        f = QFont("_monospace")
+        f.setStyleHint(QFont.StyleHint.Monospace)
+        self.logsTab = self.findChild(QPlainTextEdit, "logsTab")
+        self.logsTab.setFont(f)
+
         # moodle tab
         ## set up proxymodel for moodle treeview
         self.moodleTreeModel = MoodleTreeModel()
@@ -430,7 +436,7 @@ class MuddleWindow(QMainWindow):
 
     @pyqtSlot(str)
     def onNewLogMessage(self, msg):
-        self.findChild(QPlainTextEdit, "logsTab").appendPlainText(msg)
+        self.logsTab.appendPlainText(msg)
 
     @pyqtSlot()
     def onDownloadPathEditEditingFinished(self):
