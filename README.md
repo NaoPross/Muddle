@@ -7,13 +7,13 @@ A desktop Moodle client, because the web interface is painfully slow if you quic
 </tr></table>
 
 ## Configuration
-On linux, copy `muddle.ini.sample` to `~/.config/muddle/muddle.ini` and add a token.
-On other platforms there is no specific path implemented yet, so it will look for a file `muddle.ini` in the same folder as the executable.
+On Linux, copy `doc/muddle.ini.example` to `~/.config/muddle/muddle.ini` and add a token; on Windows the file should be put in `%APPDATA%\muddle`; and on MacOS in `~/Library/ch.0hm.muddle`.
+On other platforms for which there is no specific path implemented yet, so it will look for a file `muddle.ini` in the same folder as the executable.
 
 ## Development
 This is written in Python 3 + PyQt and the dependencies are managed with 
 [Poetry](https://python-poetry.org/docs/#installation).
-The code is a bit garbage, as I hacked it toghether in one morning, though I've tried to clean it up a bit.
+The code is a bit garbage, as I hacked it together in one morning, though I've tried to clean it up a bit.
 
 ### Linux / MacOS
 Check that you have Python >= 3.5, install 
@@ -39,7 +39,7 @@ PS> poetry run python muddle --gui
 ### Coding style
 Use pycodestyle (PEP8) except where Qt bindings are used (`gui.py`). To check use
 ```
-$ poetry run pycodestyle --show-source --ignore=E501 muddle/__main__.py muddle/moodle.py
+$ poetry run pycodestyle --show-source --ignore=E501 muddle/__main__.py muddle/moodle.py muddle/paths.py
 ```
 
 ### Compilation / Release

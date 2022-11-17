@@ -26,7 +26,10 @@ elif platform.system() == "Windows":
     if os.environ.get("LOCALAPPDATA"):
         default_log_dir = pathlib.Path(os.environ["LOCALAPPDATA"]).joinpath("muddle")
 
-# TODO: implement for MacOS
+elif platform.system() == "Darwin":
+    default_config_dir = pathlib.Path("~/Library/Preferences/ch.0hm.muddle/").expanduser()
+    default_log_dir = pathlib.Path("~/Library/Caches/ch.0hm.muddle/").expanduser()
+
 
 default_config_file = default_config_dir.joinpath("muddle.ini")
 default_log_file = default_log_dir.joinpath("muddle.log")
