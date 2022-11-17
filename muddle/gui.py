@@ -24,6 +24,7 @@ from PyQt6 import uic
 from PyQt6.QtGui import (
     QFileSystemModel,
     QFont,
+    QFontDatabase,
     QIcon,
     QStandardItem,
     QStandardItemModel,
@@ -372,8 +373,7 @@ class MuddleWindow(QMainWindow):
         logging.getLogger("muddle").addHandler(self.loghandler)
 
         ## Set font to be monospaced
-        f = QFont("_monospace")
-        f.setStyleHint(QFont.StyleHint.Monospace)
+        f = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         self.logsTab = self.findChild(QPlainTextEdit, "logsTab")
         self.logsTab.setFont(f)
 
